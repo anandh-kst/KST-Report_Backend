@@ -1,0 +1,137 @@
+6a2da20943931e9834fc12cfe5bb47bbd9ae43489a30726962b576f4e3993e50
+Server is running on port \\.\pipe\4cfa78b8-ff06-405a-9c10-89ae2b49044c
+Connected to report database successfully
+Connected to attendance_register database successfully
+Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Task' AND TABLE_SCHEMA = 'attendance_register'
+Executing (default): SHOW INDEX FROM `Task`
+Task table created successfully.
+results [
+  {
+    id: 343,
+    eventName: 'May Day',
+    startDate: 2025-04-30T18:30:00.000Z,
+    endDate: 2025-04-30T18:30:00.000Z,
+    description: 'Happy May Day'
+  },
+  {
+    id: 344,
+    eventName: 'Independence day',
+    startDate: 2025-08-14T18:30:00.000Z,
+    endDate: 2025-08-14T18:30:00.000Z,
+    description: 'Happy Independence day'
+  },
+  {
+    id: 345,
+    eventName: 'SAT OFF',
+    startDate: 2025-08-15T18:30:00.000Z,
+    endDate: 2025-08-15T18:30:00.000Z,
+    description: 'SAT OFF'
+  },
+  {
+    id: 346,
+    eventName: 'Ganesh Chaturthi',
+    startDate: 2025-08-26T18:30:00.000Z,
+    endDate: 2025-08-26T18:30:00.000Z,
+    description: 'Happy Ganesh Chaturthi'
+  },
+  {
+    id: 347,
+    eventName: 'Saraswathi Pooja',
+    startDate: 2025-08-31T18:30:00.000Z,
+    endDate: 2025-08-31T18:30:00.000Z,
+    description: 'Happy Saraswathi Pooja'
+  },
+  {
+    id: 348,
+    eventName: 'Gandhi Jayanthi',
+    startDate: 2025-10-01T18:30:00.000Z,
+    endDate: 2025-09-01T18:30:00.000Z,
+    description: 'Gandhi Jayanthi'
+  },
+  {
+    id: 349,
+    eventName: 'Diwali',
+    startDate: 2025-10-19T18:30:00.000Z,
+    endDate: 2025-09-19T18:30:00.000Z,
+    description: 'Happy Diwali'
+  },
+  {
+    id: 350,
+    eventName: 'Diwali',
+    startDate: 2025-10-20T18:30:00.000Z,
+    endDate: 2025-09-20T18:30:00.000Z,
+    description: 'Happy Diwali'
+  },
+  {
+    id: 351,
+    eventName: 'Christmas Day',
+    startDate: 2025-12-24T18:30:00.000Z,
+    endDate: 2025-12-24T18:30:00.000Z,
+    description: 'Christmas Day'
+  }
+]
+results [
+  {
+    id: 343,
+    eventName: 'May Day',
+    startDate: 2025-04-30T18:30:00.000Z,
+    endDate: 2025-04-30T18:30:00.000Z,
+    description: 'Happy May Day'
+  },
+  {
+    id: 344,
+    eventName: 'Independence day',
+    startDate: 2025-08-14T18:30:00.000Z,
+    endDate: 2025-08-14T18:30:00.000Z,
+    description: 'Happy Independence day'
+  },
+  {
+    id: 345,
+    eventName: 'SAT OFF',
+    startDate: 2025-08-15T18:30:00.000Z,
+    endDate: 2025-08-15T18:30:00.000Z,
+    description: 'SAT OFF'
+  },
+  {
+    id: 346,
+    eventName: 'Ganesh Chaturthi',
+    startDate: 2025-08-26T18:30:00.000Z,
+    endDate: 2025-08-26T18:30:00.000Z,
+    description: 'Happy Ganesh Chaturthi'
+  },
+  {
+    id: 347,
+    eventName: 'Saraswathi Pooja',
+    startDate: 2025-08-31T18:30:00.000Z,
+    endDate: 2025-08-31T18:30:00.000Z,
+    description: 'Happy Saraswathi Pooja'
+  },
+  {
+    id: 348,
+    eventName: 'Gandhi Jayanthi',
+    startDate: 2025-10-01T18:30:00.000Z,
+    endDate: 2025-09-01T18:30:00.000Z,
+    description: 'Gandhi Jayanthi'
+  },
+  {
+    id: 349,
+    eventName: 'Diwali',
+    startDate: 2025-10-19T18:30:00.000Z,
+    endDate: 2025-09-19T18:30:00.000Z,
+    description: 'Happy Diwali'
+  },
+  {
+    id: 350,
+    eventName: 'Diwali',
+    startDate: 2025-10-20T18:30:00.000Z,
+    endDate: 2025-09-20T18:30:00.000Z,
+    description: 'Happy Diwali'
+  },
+  {
+    id: 351,
+    eventName: 'Christmas Day',
+    startDate: 2025-12-24T18:30:00.000Z,
+    endDate: 2025-12-24T18:30:00.000Z,
+    description: 'Christmas Day'
+  }
+]

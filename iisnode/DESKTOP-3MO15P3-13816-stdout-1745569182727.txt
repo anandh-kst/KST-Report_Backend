@@ -1,0 +1,62 @@
+Request Body: {
+  page: '1',
+  limit: 10,
+  fromDate: '2025-04-25',
+  toDate: '2025-04-25',
+  employeeId: 'kst62'
+}
+Employee ID: kst62
+From Date: 2025-04-25T00:00:00.000Z
+To Date: 2025-04-25T00:00:00.000Z
+Executing (default): SELECT `id`, `date`, `employee_id` AS `employeeId`, `customer`, `task`, `estimated_time` AS `estimatedTime`, `start_time` AS `startTime`, `end_time` AS `endTime`, `task_status` AS `taskStatus`, `reason_for_incomplete` AS `reasonForIncomplete`, `remarks`, `employee_name` AS `employeeName`, `review`, `evaluation`, `created_at` AS `createdAt`, `updated_at` AS `updatedAt` FROM `Task` AS `Task` WHERE `Task`.`date` BETWEEN '2025-04-25 00:00:00' AND '2025-04-25 00:00:00' AND `Task`.`employee_id` = 'kst62' ORDER BY `createdAt` DESC LIMIT 0, 10;
+Reports found: [
+  Task {
+    dataValues: {
+      id: 1786,
+      date: 2025-04-25T00:00:00.000Z,
+      employeeId: 'kst62',
+      customer: 'SIFY',
+      task: 'To be fix Issue of SIPTrunk change quote status ',
+      estimatedTime: '',
+      startTime: null,
+      endTime: null,
+      taskStatus: 'In Progress',
+      reasonForIncomplete: '',
+      remarks: '',
+      employeeName: 'Lakshmi Devi G',
+      review: null,
+      evaluation: null,
+      createdAt: 2025-04-25T04:35:55.000Z,
+      updatedAt: 2025-04-25T04:35:55.000Z
+    },
+    _previousDataValues: {
+      id: 1786,
+      date: 2025-04-25T00:00:00.000Z,
+      employeeId: 'kst62',
+      customer: 'SIFY',
+      task: 'To be fix Issue of SIPTrunk change quote status ',
+      estimatedTime: '',
+      startTime: null,
+      endTime: null,
+      taskStatus: 'In Progress',
+      reasonForIncomplete: '',
+      remarks: '',
+      employeeName: 'Lakshmi Devi G',
+      review: null,
+      evaluation: null,
+      createdAt: 2025-04-25T04:35:55.000Z,
+      updatedAt: 2025-04-25T04:35:55.000Z
+    },
+    uniqno: 1,
+    _changed: Set(0) {},
+    _options: {
+      isNewRecord: false,
+      _schema: null,
+      _schemaDelimiter: '',
+      raw: true,
+      attributes: [Array]
+    },
+    isNewRecord: false
+  }
+]
+Executing (default): SELECT count(*) AS `count` FROM `Task` AS `Task` WHERE `Task`.`date` BETWEEN '2025-04-25 00:00:00' AND '2025-04-25 00:00:00' AND `Task`.`employee_id` = 'kst62';

@@ -1,0 +1,7 @@
+6a2da20943931e9834fc12cfe5bb47bbd9ae43489a30726962b576f4e3993e50
+Server is running on port \\.\pipe\3ebf2813-c6fb-4e22-b159-f9fe4648d4e5
+Connected to report database successfully
+Connected to attendance_register database successfully
+Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Task' AND TABLE_SCHEMA = 'attendance_register'
+Executing (default): SHOW INDEX FROM `Task`
+Task table created successfully.

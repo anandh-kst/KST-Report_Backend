@@ -1,0 +1,360 @@
+swagger: "2.0"
+info:
+  title: Reporting Software
+  description: Reporting Software
+  version: 1.0.1
+  basePath: "/docs"
+  contact:
+    email: vijay@gmail.com
+    name: Vijaya Kumar D
+  servers:
+    -url: "https://localhost:3000"
+    description: This is Development Server
+
+schemes: [http, https]
+
+securityDefinitions:
+  Bearer:
+    type: apiKey
+    name: Authorization
+    in: header
+
+#New Connection
+paths:
+  /login:
+    post:
+      tags:
+        - Report Login
+      summary: Report Login
+      produces:
+        - application/json
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: report 
+          schema:
+            type: object
+            properties:
+              username: 
+                type: string
+                example: 12
+              password: 
+                type: string
+                example: 1
+      securityDefinitions:
+        Bearer:
+          type: apiKey
+          name: Authorization
+          in: header
+      security: [{ "Bearer": [] }]
+      responses:
+        201:
+          description: Success
+  /appId:
+    post:
+      tags:
+        - Report Id
+      summary: Report LoginappId
+      produces:
+        - application/json
+      consumes:
+        - application/json
+      securityDefinitions:
+        Bearer:
+          type: apiKey
+          name: Authorization
+          in: header
+      security: [{ "Bearer": [] }]
+      responses:
+        201:
+          description: Success
+  /locationId/{projectId}:
+    post:
+      tags:
+        - Report Id
+      summary: locationId
+      produces:
+        - application/json
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: projectId
+          schema:
+            type: string
+            example: 1
+      securityDefinitions:
+        Bearer:
+          type: apiKey
+          name: Authorization
+          in: header
+      security: [{ "Bearer": [] }]
+      responses:
+        201:
+          description: Success
+  /get_id_report/{employeeId}:
+    post:
+      tags:
+        - Report Id
+      summary: get_id_report
+      produces:
+        - application/json
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: employeeId
+          schema:
+            type: string
+            example: 1
+      securityDefinitions:
+        Bearer:
+          type: apiKey
+          name: Authorization
+          in: header
+      security: [{ "Bearer": [] }]
+      responses:
+        201:
+          description: Success
+  /post_id_report:
+    post:
+      tags:
+        - Report Id
+      summary: post_id_report
+      produces:
+        - application/json
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: report 
+          schema:
+            type: object
+            properties:
+                employeeId:
+                  type: string
+                  example: "kst37"
+                reportDate:
+                  type: string
+                  example: "2024-05-30"
+                appId:
+                  type: integer
+                  example: 17
+                locationId:
+                  type: integer
+                  example: 70
+                receivedDate:
+                  type: string
+                  format: date
+                  example: "2024-05-25"
+                regNo:
+                  type: string
+                  example: "REG001"
+                noOfForms:
+                  type: integer
+                  example: 10
+                scanning:
+                  type: string
+                  example: "Done"
+                typing:
+                  type: string
+                  example: "Done"
+                photoshop:
+                  type: string
+                  example: "Done"
+                coraldraw:
+                  type: string
+                  example: "Done"
+                underPrinting:
+                  type: string
+                  example: "Done"
+                tobeDelivered:
+                  type: string
+                  example: "No"
+                delivered:
+                  type: string
+                  example: "No"
+                remarks:
+                  type: string
+                  example: "All good"
+      securityDefinitions:
+        Bearer:
+          type: apiKey
+          name: Authorization
+          in: header
+      security: [{ "Bearer": [] }]
+      responses:
+        201:
+          description: Success  
+  /get_report_details/{employeeId}:
+    post:
+      tags:
+        - Report Employee
+      summary: get_report_details
+      produces:
+        - application/json
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: employeeId
+          schema:
+            type: string
+            example: kst66
+      securityDefinitions:
+        Bearer:
+          type: apiKey
+          name: Authorization
+          in: header
+      security: [{ "Bearer": [] }]
+      responses:
+        201:
+          description: Success
+  /get_projects_list/{employeeId}:
+    post:
+      tags:
+        - Report Employee
+      summary: Report Employee
+      produces:
+        - application/json
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: employeeId
+          schema:
+            type: string
+            example: kst66
+      securityDefinitions:
+        Bearer:
+          type: apiKey
+          name: Authorization
+          in: header
+      security: [{ "Bearer": [] }]
+      responses:
+        201:
+          description: Success
+  /reportHistory/{employeeId}:
+    post:
+      tags:
+        - Report History
+      summary: reportHistory
+      produces:
+        - application/json
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: employeeId
+          schema:
+            type: string
+            example: kst66
+        - in: body
+          name: body
+          description: Report history details
+          required: true
+          schema:
+            type: object
+            properties:
+              domain:
+                type: string
+                example: Development
+              page:
+                type: string
+                example: 1
+              limit:
+                type: string
+                example: 10
+              fromDate:
+                type: string
+                example: 10
+              toDate:
+                type: string
+                example: 10
+      securityDefinitions:
+        Bearer:
+          type: apiKey
+          name: Authorization
+          in: header
+      security: [{ "Bearer": [] }]
+      responses:
+        201:
+          description: Success
+
+  /employee_list:
+    post:
+      tags:
+        - Admin
+      summary: Employee List
+      produces:
+        - application/json
+      consumes:
+        - application/json
+      securityDefinitions:
+        Bearer:
+          type: apiKey
+          name: Authorization
+          in: header
+      security: [{ "Bearer": [] }]
+      responses:
+        201:
+          description: Success
+  /create_project:
+    post:
+      tags:
+        - Admin
+      summary: create_project
+      produces:
+        - application/json
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: report 
+          schema:
+            type: object
+            properties:
+                projectName:
+                  type: string
+                  example: "New-Project"
+                subProject:
+                  type: string
+                  example: ["web","mobile"]
+      securityDefinitions:
+        Bearer:
+          type: apiKey
+          name: Authorization
+          in: header
+      security: [{ "Bearer": [] }]
+      responses:
+        201:
+          description: Success  
+  /delete_project:
+    post:
+      tags:
+        - Admin
+      summary: delete_project
+      produces:
+        - application/json
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: report 
+          schema:
+            type: object
+            properties:
+                id:
+                  type: integer
+                  example: 1
+      securityDefinitions:
+        Bearer:
+          type: apiKey
+          name: Authorization
+          in: header
+      security: [{ "Bearer": [] }]
+      responses:
+        201:
+          description: Success  
+
