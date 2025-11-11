@@ -35,7 +35,8 @@ router.post("/create_event", reports.create_event);
 router.post("/getSinglePunch", reports.getSinglePunch);
 router.post("/updateMultipleRefTimes", reports.updateMultipleRefTimes);
 router.post("/updateOrInsertPunches", reports.updateOrInsertPunches);
-router.post("/attenadanceSummary", reports.attenadanceSummary);
+router.post("/attendanceSummary", reports.attendanceSummary);
+router.post("/attendanceDashboard",reports.attendanceDashboard);
 
 router.get("/generateEmployeeId", reports.generateEmployeeId);
 router.get("/deactiveEmployees", reports.deactiveEmployees);

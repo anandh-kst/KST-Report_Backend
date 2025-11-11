@@ -4220,45 +4220,143 @@ exports.get_fcmToken = async (req, res) => {
   }
 };
 
-
-
 ///Development in progress by KS Anandh
-exports.attenadanceSummary = async (req, res) => {
+exports.attendanceSummary = async (req, res) => {
   const { date } = req.body;
-  let ApprovedLeaves = {
-    halfDayLeaves: [],
-    HourlyLeaves: [],
-  };
-  let attendees = [];
-  let absentees = [];
 
+  if (!date) {
+    return res.status(400).send("Date is required");
+  }
 
   try {
-    if (!date) {
-      res.status(400).send("Date is required");
-    }
+    // 1️⃣ Get all employees (basic details)
+    const [allEmployees] = await attendanceConnection.execute(`
+      SELECT *
+      FROM tbl_userDetails
+      WHERE isActive = '1'
+        AND userType = 'employee'
+      ORDER BY employeeId ASC
+    `);
 
-  //1.get all pounch reports
-    query = `SELECT * FROM tbl_dailypunch WHERE CAST(logTime AS DATE) = ?`;
-    params = [date];
-    const [presenties] = await attendanceConnection.execute(query, params);
-
-      //2.get and filter leave-forms baseed on aprovel
-    const query = `
+    // 2️⃣ Get approved leave requests (complete records)
+    const [leaveApprovals] = await attendanceConnection.execute(
+      `
       SELECT *
       FROM leaverequest_form
       WHERE CAST(createdAt AS DATE) = ?
-       AND status = 'Accepted' `;
-    const params = [date];
-    const [leavedApprovels] = await attendanceConnection.execute(query, params);
+        AND status = 'Accepted'
+      `,
+      [date]
+    );
 
-    res.json(rows);
-  } catch (err) {
+    // 3️⃣ Get unique punch-ins for present employees
+    const [punchRecords] = await attendanceConnection.execute(
+      `
+      SELECT *
+      FROM tbl_dailypunch t1
+      WHERE CAST(t1.logTime AS DATE) = ?
+        AND t1.id = (
+          SELECT MIN(t2.id)
+          FROM tbl_dailypunch t2
+          WHERE t2.employeeId = t1.employeeId
+            AND CAST(t2.logTime AS DATE) = ?
+        );
+      `,
+      [date, date]
+    );
+
+    // 6️⃣ Create summary
+    const summary = {
+      date,
+      allEmployees,
+      leaveApprovals,
+      punchRecords,
+    };
+    // 7️⃣ Send response
+    res.status(200).json({
+      status: "Success",
+      data: summary,
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).send("Server error");
+  }
+};
+
+exports.attendanceDashboard=async(req,res)=>{
+  const { date } = req.body;
+  if (!date) {
+    return res.status(400).send("Date is required");
+  }
+
+  try {
+    // 1️⃣ Get all employees (basic details)
+    const [allEmployees] = await attendanceConnection.execute(`
+      SELECT *
+      FROM tbl_userDetails
+      WHERE isActive = '1'
+        AND userType = 'employee'
+      ORDER BY employeeId ASC
+    `);
+
+    // 2️⃣ Get approved leave requests (complete records)
+    const [leaveApprovals] = await attendanceConnection.execute(
+      `
+      SELECT *
+      FROM leaverequest_form
+      WHERE CAST(createdAt AS DATE) = ?
+        AND status = 'Accepted'
+      `,
+      [date]
+    );
+
+    // 3️⃣ Get unique punch-ins for present employees
+    const [punchRecords] = await attendanceConnection.execute(
+      `
+      SELECT *
+      FROM tbl_dailypunch t1
+      WHERE CAST(t1.logTime AS DATE) = ?
+        AND t1.id = (
+          SELECT MIN(t2.id)
+          FROM tbl_dailypunch t2
+          WHERE t2.employeeId = t1.employeeId
+            AND CAST(t2.logTime AS DATE) = ?
+        );
+      `,
+      [date, date]
+    );
+
+    const allIds = allEmployees.map(emp => emp.employeeId);
+    const leaveRequests = leaveApprovals.map(emp => emp.Employee_id);
+    const punchIds = punchRecords.map(punch => punch.employeeId);
+
+    const FullPresent = punchIds.filter(id => !leaveRequests.includes(id));
+    let fullAbsent = allIds.filter(id => !punchIds.includes(id));
+    let absentsFromRequesting =leaveApprovals.filter(emp=>emp.leaveTimes.toLowerCase()=="full day").map(emp=>emp.Employee_id)
+    fullAbsent=[...fullAbsent,...absentsFromRequesting]
+    fullAbsent = [...new Set(fullAbsent)];
+
+    const halfLeave=leaveApprovals.filter(emp=>emp.leaveTimes.toLowerCase()=="half day").map(emp=>emp.Employee_id) 
+    const hourlyLeave=leaveApprovals.filter(emp=>emp.leaveTimes.toLowerCase()=="permission").map(emp=>emp.Employee_id)
+    
+    // 6️⃣ Create summary
+    const summary = {
+      date,
+      allIds,
+      FullPresent,
+      fullAbsent,
+      halfLeave,
+      hourlyLeave
+    };
+    // 7️⃣ Send response
+    res.status(200).json({
+      status: "Success",
+      data: summary,
+    });
+  } catch (error) {
     console.error("Error fetching data:", error);
     res.status(500).send("Server error");
   }
 
+}
 
-
-  //3.get employee excluding leave-forms and pounch reports
-};
