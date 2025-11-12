@@ -1535,76 +1535,76 @@ exports.applyLeave = async (req, res, next) => {
         message: "Cannot apply for past dates.",
       });
     }
-    // Skip rules check for Permission leaves
-    // if (leaveTypes !== "Permission") {
-    //   const sql = "SELECT * FROM rules_form ORDER BY id DESC LIMIT 1";
+   // Skip rules check for Permission leaves
+    if (leaveTypes !== "Permission") {
+      const sql = "SELECT * FROM rules_form ORDER BY id DESC LIMIT 1";
 
-    //   try {
-    //     const rulesResult = await attendanceConnection.execute(sql);
-    //     const rules = rulesResult[0];
-    //     const currentMonth = start.getMonth() + 1;
-    //     const currentYear = start.getFullYear();
-    //     const dayOfWeek = start.getDay(); // 6 = Saturday
-    //     // Casual Leave Checks
-    //     if (leaveTypes === "Casual Leave") {
-    //       if (startDate !== endDate) {
-    //         return res.status(400).json({
-    //           status: "Error",
-    //           message: "Casual Leave must be for a single day only.",
-    //         });
-    //       }
-    //       const [casualExists] = await attendanceConnection.execute(
-    //         `SELECT 1 FROM leaverequest_form
-    //          WHERE Employee_id = ? AND leaveTypes = 'Casual Leave'
-    //          AND MONTH(startDate) = ? AND YEAR(startDate) = ?`,
-    //         [Employee_id, currentMonth, currentYear]
-    //       );
-    //       if (casualExists.length > 0) {
-    //         return res.status(400).json({
-    //           status: "Error",
-    //           message: "Casual Leave already applied this month.",
-    //         });
-    //       }
-    //     }
-    //     // Saturday Off Checks
-    //     if (leaveTypes === "Saturday Off") {
-    //       if (startDate !== endDate) {
-    //         return res.status(400).json({
-    //           status: "Error",
-    //           message: "Saturday Off must be for a single day only.",
-    //         });
-    //       }
-    //       if (dayOfWeek !== 6) {
-    //         return res.status(400).json({
-    //           status: "Error",
-    //           message: "Saturday Off can only be applied on Saturdays.",
-    //         });
-    //       }
-    //       const [satOffCount] = await attendanceConnection.execute(
-    //         `SELECT COUNT(*) AS count FROM leaverequest_form
-    //          WHERE Employee_id = ? AND leaveTypes = 'Saturday Off'
-    //          AND MONTH(startDate) = ? AND YEAR(startDate) = ?`,
-    //         [Employee_id, currentMonth, currentYear]
-    //       );
-    //       if (satOffCount[0].count >= (rules?.saturday_off || 0)) {
-    //         return res.status(400).json({
-    //           status: "Error",
-    //           message: `Saturday Off limit reached for this month.`,
-    //         });
-    //       }
-    //     }
-    //   } catch (error) {
-    //     console.log(error);
-    //     // If rules table doesn't exist but it's not a Permission leave
-    //     if (leaveTypes !== "Permission") {
-    //       return res.status(500).json({
-    //         status: "Error",
-    //         message: "System configuration error. Please contact admin.",
-    //       });
-    //     }
-    //   }
-    // }
-    // No Overlapping Leaves (including Permission)
+      try {
+        const rulesResult = await attendanceConnection.execute(sql);
+        const rules = rulesResult[0];
+        const currentMonth = start.getMonth() + 1;
+        const currentYear = start.getFullYear();
+        const dayOfWeek = start.getDay(); // 6 = Saturday
+        // Casual Leave Checks
+        if (leaveTypes === "Casual Leave") {
+          if (startDate !== endDate) {
+            return res.status(400).json({
+              status: "Error",
+              message: "Casual Leave must be for a single day only.",
+            });
+          }
+          const [casualExists] = await attendanceConnection.execute(
+            `SELECT 1 FROM leaverequest_form
+             WHERE Employee_id = ? AND leaveTypes = 'Casual Leave'
+             AND MONTH(startDate) = ? AND YEAR(startDate) = ?`,
+            [Employee_id, currentMonth, currentYear]
+          );
+          if (casualExists.length > 0) {
+            return res.status(400).json({
+              status: "Error",
+              message: "Casual Leave already applied this month.",
+            });
+          }
+        }
+        // Saturday Off Checks
+        if (leaveTypes === "Saturday Off") {
+          if (startDate !== endDate) {
+            return res.status(400).json({
+              status: "Error",
+              message: "Saturday Off must be for a single day only.",
+            });
+          }
+          if (dayOfWeek !== 6) {
+            return res.status(400).json({
+              status: "Error",
+              message: "Saturday Off can only be applied on Saturdays.",
+            });
+          }
+          const [satOffCount] = await attendanceConnection.execute(
+            `SELECT COUNT(*) AS count FROM leaverequest_form
+             WHERE Employee_id = ? AND leaveTypes = 'Saturday Off'
+             AND MONTH(startDate) = ? AND YEAR(startDate) = ?`,
+            [Employee_id, currentMonth, currentYear]
+          );
+          if (satOffCount[0].count >= (rules?.saturday_off || 0)) {
+            return res.status(400).json({
+              status: "Error",
+              message: `Saturday Off limit reached for this month.`,
+            });
+          }
+        }
+      } catch (error) {
+        console.log(error);
+        // If rules table doesn't exist but it's not a Permission leave
+        if (leaveTypes !== "Permission") {
+          return res.status(500).json({
+            status: "Error",
+            message: "System configuration error. Please contact admin.",
+          });
+        }
+      }
+    }
+   // No Overlapping Leaves (including Permission)
     const [overlapCheck] = await attendanceConnection.execute(
       `SELECT 1 FROM leaverequest_form 
        WHERE Employee_id = ? AND status != 'Rejected' AND (
@@ -4283,7 +4283,7 @@ exports.attendanceSummary = async (req, res) => {
   }
 };
 
-exports.attendanceDashboard=async(req,res)=>{
+exports.attendanceDashboard = async (req, res) => {
   const { date } = req.body;
   if (!date) {
     return res.status(400).send("Date is required");
@@ -4326,19 +4326,25 @@ exports.attendanceDashboard=async(req,res)=>{
       [date, date]
     );
 
-    const allIds = allEmployees.map(emp => emp.employeeId);
-    const leaveRequests = leaveApprovals.map(emp => emp.Employee_id);
-    const punchIds = punchRecords.map(punch => punch.employeeId);
+    const allIds = allEmployees.map((emp) => emp.employeeId);
+    const leaveRequests = leaveApprovals.map((emp) => emp.Employee_id);
+    const punchIds = punchRecords.map((punch) => punch.employeeId);
 
-    const FullPresent = punchIds.filter(id => !leaveRequests.includes(id));
-    let fullAbsent = allIds.filter(id => !punchIds.includes(id));
-    let absentsFromRequesting =leaveApprovals.filter(emp=>emp.leaveTimes.toLowerCase()=="full day").map(emp=>emp.Employee_id)
-    fullAbsent=[...fullAbsent,...absentsFromRequesting]
+    const FullPresent = punchIds.filter((id) => !leaveRequests.includes(id));
+    let fullAbsent = allIds.filter((id) => !punchIds.includes(id));
+    let absentsFromRequesting = leaveApprovals
+      .filter((emp) => emp.leaveTimes.toLowerCase() == "full day")
+      .map((emp) => emp.Employee_id);
+    fullAbsent = [...fullAbsent, ...absentsFromRequesting];
     fullAbsent = [...new Set(fullAbsent)];
 
-    const halfLeave=leaveApprovals.filter(emp=>emp.leaveTimes.toLowerCase()=="half day").map(emp=>emp.Employee_id) 
-    const hourlyLeave=leaveApprovals.filter(emp=>emp.leaveTimes.toLowerCase()=="permission").map(emp=>emp.Employee_id)
-    
+    const halfLeave = leaveApprovals
+      .filter((emp) => emp.leaveTimes.toLowerCase() == "half day")
+      .map((emp) => emp.Employee_id);
+    const hourlyLeave = leaveApprovals
+      .filter((emp) => emp.leaveTimes.toLowerCase() == "permission")
+      .map((emp) => emp.Employee_id);
+
     // 6️⃣ Create summary
     const summary = {
       date,
@@ -4346,7 +4352,7 @@ exports.attendanceDashboard=async(req,res)=>{
       FullPresent,
       fullAbsent,
       halfLeave,
-      hourlyLeave
+      hourlyLeave,
     };
     // 7️⃣ Send response
     res.status(200).json({
@@ -4357,6 +4363,184 @@ exports.attendanceDashboard=async(req,res)=>{
     console.error("Error fetching data:", error);
     res.status(500).send("Server error");
   }
+};
 
+exports.getAllEmployees = async (req, res) => {
+  try {
+    const [allEmployees] = await attendanceConnection.execute(`
+      SELECT *
+      FROM tbl_userDetails
+      WHERE isActive = '1'
+        AND userType = 'employee'
+      ORDER BY employeeId ASC
+    `);
+    res.status(200).json({
+      status: "Success",
+      data: allEmployees,
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).send("Server error");
+  }
+};
+
+exports.addAsset = async (req, res) => {
+  try {
+    const {
+      employeeId,
+      assetName,
+      assetType,
+      serialNumber,
+      qty,
+      remarks,
+      IssueDate,
+      ReturnDate,
+    } = req.body;
+
+    const [result] = await attendanceConnection.execute(
+      `
+      INSERT INTO employeeassets (employeeId, assetName, assetType, serialNumber, qty, remarks, IssueDate, ReturnDate)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+      [
+        employeeId,
+        assetName,
+        assetType,
+        serialNumber,
+        qty || 0,
+        remarks || null,
+        IssueDate || null,
+        ReturnDate || null,
+      ]
+    );
+
+    res.status(200).json({
+      status: "Success",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).send("Server error");
+  }
+};
+
+exports.getAssets = async (req, res) => {
+  try {
+    const [result] = await attendanceConnection.execute(
+      `SELECT * FROM employeeassets`
+    );
+    const groupedArray = Object.entries(
+      result.reduce((acc, item) => {
+        if (!acc[item.employeeId]) {
+          acc[item.employeeId] = [];
+        }
+        acc[item.employeeId].push(item);
+        return acc;
+      }, {})
+    ).sort((a, b) => b[1].length - a[1].length);
+    
+    res.status(200).json({
+      status: "Success",
+      data: groupedArray,
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).send("Server error");
+  }
+};
+
+exports.deleteAsset=async(req,res)=>{
+try{
+   const  [results]= await attendanceConnection.execute(`DELETE FROM employeeassets
+   WHERE assetId = ?`,[req.params.id])
+   res.status(200).json({status:"Success",data:results})
+}
+catch(err){
+   console.log(err);
+   res.status(500).json({status:"error",message:"server error"})
+}
 }
 
+exports.updateAsset = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      employeeId,
+      assetName,
+      assetType,
+      serialNumber,
+      qty,
+      remarks,
+      issueDate,
+      returnDate,
+    } = req.body;
+
+
+    const updates = [];
+    const values = [];
+
+    if (employeeId) {
+      updates.push("employeeId = ?");
+      values.push(employeeId);
+    }
+    if (assetName) {
+      updates.push("assetName = ?");
+      values.push(assetName);
+    }
+    if (assetType) {
+      updates.push("assetType = ?");
+      values.push(assetType);
+    }
+    if (serialNumber) {
+      updates.push("serialNumber = ?");
+      values.push(serialNumber);
+    }
+    if (qty) {
+      updates.push("qty = ?");
+      values.push(qty);
+    }
+    if (remarks) {
+      updates.push("remarks = ?");
+      values.push(remarks);
+    }
+    if (issueDate) {
+      updates.push("issueDate = ?");
+      values.push(issueDate);
+    }
+    if (returnDate) {
+      updates.push("returnDate = ?");
+      values.push(returnDate);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "No fields provided to update",
+      });
+    }
+
+    values.push(id);
+
+    const query = `UPDATE employeeassets SET ${updates.join(", ")} WHERE assetId = ?`;
+
+    const [results] = await attendanceConnection.execute(query, values);
+
+    res.status(200).json({ status: "Success", data: results });
+  } catch (err) {
+    console.error("Error updating asset:", err);
+    res.status(500).json({ status: "error", message: "Server error" });
+  }
+};
+
+
+exports.getAsset=async(req,res)=>{
+try{
+   const  [results]= await attendanceConnection.execute(`SELECT * FROM employeeassets
+   WHERE assetId = ?`,[req.params.id])
+   res.status(200).json({status:"Success",data:results})
+}
+catch(err){
+   console.log(err);
+   res.status(500).json({status:"error",message:"server error"})
+}
+}

@@ -35,8 +35,16 @@ router.post("/create_event", reports.create_event);
 router.post("/getSinglePunch", reports.getSinglePunch);
 router.post("/updateMultipleRefTimes", reports.updateMultipleRefTimes);
 router.post("/updateOrInsertPunches", reports.updateOrInsertPunches);
+
 router.post("/attendanceSummary", reports.attendanceSummary);
 router.post("/attendanceDashboard",reports.attendanceDashboard);
+router.get("/getAllEmployees",reports.getAllEmployees);
+router.post("/addAsset",reports.addAsset);
+router.get("/getAssets",reports.getAssets);
+router.delete("/deleteAsset/:id",reports.deleteAsset);
+router.put("/updateAsset/:id",reports.updateAsset);
+router.get("/getAsset/:id",reports.getAsset);
+
 
 router.get("/generateEmployeeId", reports.generateEmployeeId);
 router.get("/deactiveEmployees", reports.deactiveEmployees);
