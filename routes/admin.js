@@ -16,7 +16,7 @@ router.post(
   upload.upload.single("profileUrl"),
   reports.addEmployee1
 );
-//router.post('/uploadProfileImage',reports.uploadProfileImage);
+// router.post('/uploadProfileImage',reports.uploadProfileImage);
 router.post("/getEmployeeById/:employeeId", reports.getEmployeeById);
 router.post("/deleteEmployee/:id", reports.deleteEmployee);
 
@@ -37,14 +37,14 @@ router.post("/updateMultipleRefTimes", reports.updateMultipleRefTimes);
 router.post("/updateOrInsertPunches", reports.updateOrInsertPunches);
 
 router.post("/attendanceSummary", reports.attendanceSummary);
-router.post("/attendanceDashboard",reports.attendanceDashboard);
-router.get("/getAllEmployees",reports.getAllEmployees);
-router.post("/addAsset",reports.addAsset);
-router.get("/getAssets",reports.getAssets);
-router.delete("/deleteAsset/:id",reports.deleteAsset);
-router.put("/updateAsset/:id",reports.updateAsset);
-router.get("/getAsset/:id",reports.getAsset);
-
+router.post("/attendanceDashboard", reports.attendanceDashboard);
+router.get("/getAllEmployees", reports.getAllEmployees);
+router.post("/addAsset", reports.addAsset);
+router.get("/getAssets", reports.getAssets);
+router.delete("/deleteAsset/:id", reports.deleteAsset);
+router.put("/updateAsset/:id", reports.updateAsset);
+router.get("/getAsset/:id", reports.getAsset);
+router.post("/updateProfileImage/:id",upload.upload.single("profileUrl"),reports.updateProfileImage);
 
 router.get("/generateEmployeeId", reports.generateEmployeeId);
 router.get("/deactiveEmployees", reports.deactiveEmployees);
@@ -56,10 +56,13 @@ router.get("/getAllHolidays", reports.getAllHolidays);
 router.post("/project_assign", reports.project_assign);
 router.post("/get_assigned_project", reports.get_assigned_project);
 router.post("/delete_project_assign", reports.delete_project_assign);
-router.post("/getEmployeesWithMissingTasks", reports.getEmployeesWithMissingTasks);
+router.post(
+  "/getEmployeesWithMissingTasks",
+  reports.getEmployeesWithMissingTasks
+);
 router.post("/deleteLeaveApplication", reports.deleteLeaveApplication);
 router.post("/get_late_punch", reports.get_late_punch);
-router.post("/get_fcmToken",reports.get_fcmToken)
+router.post("/get_fcmToken", reports.get_fcmToken);
 router.post("/getAttendanceReport", reports.getAttendanceReport);
 router.post("/get_save_rules", reports.get_save_rules);
 router.post("/get_all_save_rules", reports.get_all_save_rules);

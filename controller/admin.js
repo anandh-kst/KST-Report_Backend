@@ -1535,7 +1535,7 @@ exports.applyLeave = async (req, res, next) => {
         message: "Cannot apply for past dates.",
       });
     }
-   // Skip rules check for Permission leaves
+    // Skip rules check for Permission leaves
     if (leaveTypes !== "Permission") {
       const sql = "SELECT * FROM rules_form ORDER BY id DESC LIMIT 1";
 
@@ -1604,7 +1604,7 @@ exports.applyLeave = async (req, res, next) => {
         }
       }
     }
-   // No Overlapping Leaves (including Permission)
+    // No Overlapping Leaves (including Permission)
     const [overlapCheck] = await attendanceConnection.execute(
       `SELECT 1 FROM leaverequest_form 
        WHERE Employee_id = ? AND status != 'Rejected' AND (
@@ -4220,7 +4220,6 @@ exports.get_fcmToken = async (req, res) => {
   }
 };
 
-///Development in progress by KS Anandh
 exports.attendanceSummary = async (req, res) => {
   const { date } = req.body;
 
@@ -4229,7 +4228,6 @@ exports.attendanceSummary = async (req, res) => {
   }
 
   try {
-    // 1️⃣ Get all employees (basic details)
     const [allEmployees] = await attendanceConnection.execute(`
       SELECT *
       FROM tbl_userDetails
@@ -4238,7 +4236,6 @@ exports.attendanceSummary = async (req, res) => {
       ORDER BY employeeId ASC
     `);
 
-    // 2️⃣ Get approved leave requests (complete records)
     const [leaveApprovals] = await attendanceConnection.execute(
       `
       SELECT *
@@ -4249,7 +4246,6 @@ exports.attendanceSummary = async (req, res) => {
       [date]
     );
 
-    // 3️⃣ Get unique punch-ins for present employees
     const [punchRecords] = await attendanceConnection.execute(
       `
       SELECT *
@@ -4265,14 +4261,13 @@ exports.attendanceSummary = async (req, res) => {
       [date, date]
     );
 
-    // 6️⃣ Create summary
     const summary = {
       date,
       allEmployees,
       leaveApprovals,
       punchRecords,
     };
-    // 7️⃣ Send response
+
     res.status(200).json({
       status: "Success",
       data: summary,
@@ -4290,7 +4285,6 @@ exports.attendanceDashboard = async (req, res) => {
   }
 
   try {
-    // 1️⃣ Get all employees (basic details)
     const [allEmployees] = await attendanceConnection.execute(`
       SELECT *
       FROM tbl_userDetails
@@ -4299,7 +4293,6 @@ exports.attendanceDashboard = async (req, res) => {
       ORDER BY employeeId ASC
     `);
 
-    // 2️⃣ Get approved leave requests (complete records)
     const [leaveApprovals] = await attendanceConnection.execute(
       `
       SELECT *
@@ -4310,7 +4303,6 @@ exports.attendanceDashboard = async (req, res) => {
       [date]
     );
 
-    // 3️⃣ Get unique punch-ins for present employees
     const [punchRecords] = await attendanceConnection.execute(
       `
       SELECT *
@@ -4345,7 +4337,6 @@ exports.attendanceDashboard = async (req, res) => {
       .filter((emp) => emp.leaveTimes.toLowerCase() == "permission")
       .map((emp) => emp.Employee_id);
 
-    // 6️⃣ Create summary
     const summary = {
       date,
       allIds,
@@ -4354,7 +4345,7 @@ exports.attendanceDashboard = async (req, res) => {
       halfLeave,
       hourlyLeave,
     };
-    // 7️⃣ Send response
+
     res.status(200).json({
       status: "Success",
       data: summary,
@@ -4393,13 +4384,13 @@ exports.addAsset = async (req, res) => {
       serialNumber,
       qty,
       remarks,
-      IssueDate,
-      ReturnDate,
+      issueDate,
+      returnDate,
     } = req.body;
 
     const [result] = await attendanceConnection.execute(
       `
-      INSERT INTO employeeassets (employeeId, assetName, assetType, serialNumber, qty, remarks, IssueDate, ReturnDate)
+      INSERT INTO employeeassets (employeeId, assetName, assetType, serialNumber, qty, remarks, issueDate, returnDate)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `,
       [
@@ -4409,8 +4400,8 @@ exports.addAsset = async (req, res) => {
         serialNumber,
         qty || 0,
         remarks || null,
-        IssueDate || null,
-        ReturnDate || null,
+        issueDate || null,
+        returnDate || null,
       ]
     );
 
@@ -4438,7 +4429,7 @@ exports.getAssets = async (req, res) => {
         return acc;
       }, {})
     ).sort((a, b) => b[1].length - a[1].length);
-    
+
     res.status(200).json({
       status: "Success",
       data: groupedArray,
@@ -4449,21 +4440,33 @@ exports.getAssets = async (req, res) => {
   }
 };
 
-exports.deleteAsset=async(req,res)=>{
-try{
-   const  [results]= await attendanceConnection.execute(`DELETE FROM employeeassets
-   WHERE assetId = ?`,[req.params.id])
-   res.status(200).json({status:"Success",data:results})
-}
-catch(err){
-   console.log(err);
-   res.status(500).json({status:"error",message:"server error"})
-}
-}
+exports.deleteAsset = async (req, res) => {
+  try {
+    if (!req.params.id) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "id is required" });
+    }
+    const [results] = await attendanceConnection.execute(
+      `DELETE FROM employeeassets
+   WHERE assetId = ?`,
+      [req.params.id]
+    );
+    res.status(200).json({ status: "Success", data: results });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ status: "error", message: "server error" });
+  }
+};
 
 exports.updateAsset = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!id) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "id is required" });
+    }
     const {
       employeeId,
       assetName,
@@ -4474,7 +4477,6 @@ exports.updateAsset = async (req, res) => {
       issueDate,
       returnDate,
     } = req.body;
-
 
     const updates = [];
     const values = [];
@@ -4521,7 +4523,9 @@ exports.updateAsset = async (req, res) => {
 
     values.push(id);
 
-    const query = `UPDATE employeeassets SET ${updates.join(", ")} WHERE assetId = ?`;
+    const query = `UPDATE employeeassets SET ${updates.join(
+      ", "
+    )} WHERE assetId = ?`;
 
     const [results] = await attendanceConnection.execute(query, values);
 
@@ -4532,15 +4536,41 @@ exports.updateAsset = async (req, res) => {
   }
 };
 
-
-exports.getAsset=async(req,res)=>{
-try{
-   const  [results]= await attendanceConnection.execute(`SELECT * FROM employeeassets
-   WHERE assetId = ?`,[req.params.id])
-   res.status(200).json({status:"Success",data:results})
-}
-catch(err){
-   console.log(err);
-   res.status(500).json({status:"error",message:"server error"})
-}
-}
+exports.getAsset = async (req, res) => {
+  try {
+    if (!req.params.id) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "id is required" });
+    }
+    const [results] = await attendanceConnection.execute(
+      `SELECT * FROM employeeassets
+   WHERE assetId = ?`,
+      [req.params.id]
+    );
+    res.status(200).json({ status: "Success", data: results });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ status: "error", message: "server error" });
+  }
+};
+exports.updateProfileImage = async (req, res) => {
+  // here i need update employee profile image
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "id is required" });
+    }
+    const profileImage = req.file.filename
+    const [results] = await attendanceConnection.execute(
+      `UPDATE tbl_userDetails SET profileUrl = ? WHERE employeeId = ?`,
+      [profileImage, id]
+    );
+    res.status(200).json({ status: "Success", data: results });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ status: "error", message: "server error" });
+  }
+};
