@@ -3461,78 +3461,176 @@ exports.getAllHolidays = async (req, res) => {
   }
 };
 
+// exports.project_assign = async (req, res) => {
+
+//   const safe = (v) => (v === undefined ? null : v);
+
+//   const {
+//     id,
+//     employee_id,
+//     employee_name,
+//     project_name,
+//     sub_products,
+//     assigned_date,
+//     deadline_date,
+//     task_details,
+//     task_description,
+//     estimated_time,
+//     task_status,
+//     remarks,
+//     created_by,
+//     admin_review,
+//     team_leader_review,
+//     reason_for_incomplete,
+//   } = req.body;
+
+//   const currentDate = new Date().toISOString().slice(0, 10); // Current date (YYYY-MM-DD)
+
+//   try {
+//     if (id) {
+//       // If ID exists, update project details
+//       const updateQuery = `
+//         UPDATE project_assign SET 
+//           employee_id = ?,
+//           date = ?, 
+//           employee_name = ?, 
+//           project_name = ?, 
+//           sub_products = ?, 
+//           assigned_date = ?, 
+//           deadline_date = ?, 
+//           task_details = ?, 
+//           task_description = ?,
+//           estimated_time = ?,
+//           task_status = ?,
+//           remarks = ?,
+//           created_by = ?,
+//           admin_review = ?,
+//           team_leader_review = ?,
+//           reason_for_incomplete = ?,
+//           updated_at = CURRENT_TIMESTAMP
+//         WHERE id = ?
+//       `;
+
+//       await attendanceConnection.execute(updateQuery, [
+//         employee_id,
+//         currentDate,
+//         employee_name,
+//         project_name,
+//         sub_products,
+//         assigned_date,
+//         deadline_date,
+//         task_details,
+//         task_description,
+//         estimated_time,
+//         task_status,
+//         remarks,
+//         created_by,
+//         admin_review,
+//         team_leader_review,
+//         reason_for_incomplete,
+//         id,
+//       ]);
+
+//       res.json({ message: "Project updated successfully." });
+//     } else {
+//       // If ID doesn't exist, insert a new record
+//       const insertQuery = `
+//          INSERT INTO project_assign (
+//           date, employee_id, employee_name, project_name, sub_products,
+//           assigned_date, deadline_date, task_details, task_description,
+//           estimated_time, task_status, remarks, created_by,
+//           admin_review, team_leader_review, reason_for_incomplete,
+//           created_at, updated_at
+//         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+//       `;
+
+//       await attendanceConnection.execute(insertQuery, [
+//         currentDate,
+//         employee_id,
+//         employee_name,
+//         project_name,
+//         sub_products,
+//         assigned_date,
+//         deadline_date,
+//         task_details,
+//         task_description,
+//         estimated_time,
+//         task_status,
+//         remarks,
+//         created_by,
+//         admin_review,
+//         team_leader_review,
+//         reason_for_incomplete,
+//       ]);
+
+//       res.json({ message: "Project assigned successfully." });
+//     }
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 exports.project_assign = async (req, res) => {
-  const {
-    id,
-    employee_id,
-    employee_name,
-    project_name,
-    sub_products,
-    assigned_date,
-    deadline_date,
-    task_details,
-    task_description,
-    estimated_time,
-    task_status,
-    remarks,
-    created_by,
-    admin_review,
-    team_leader_review,
-    reason_for_incomplete,
-  } = req.body;
-
-  const currentDate = new Date().toISOString().slice(0, 10); // Current date (YYYY-MM-DD)
-
   try {
+    const currentDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+    // Helper function to safely extract fields with null fallback
+    const safe = (key) => (req.body[key] === undefined ? null : req.body[key]);
+
+    const id = safe("id");
+
+    const values = {
+      employee_id: safe("employee_id"),
+      employee_name: safe("employee_name"),
+      project_name: safe("project_name"),
+      sub_products: safe("sub_products"),
+      assigned_date: safe("assigned_date"),
+      deadline_date: safe("deadline_date"),
+      task_details: safe("task_details"),
+      task_description: safe("task_description"),
+      estimated_time: safe("estimated_time"),
+      task_status: safe("task_status"),
+      remarks: safe("remarks"),
+      created_by: safe("created_by"),
+      admin_review: safe("admin_review"),
+      team_leader_review: safe("team_leader_review"),
+      reason_for_incomplete: safe("reason_for_incomplete"),
+    };
+
     if (id) {
-      // If ID exists, update project details
       const updateQuery = `
         UPDATE project_assign SET 
-          employee_id = ?,
-          date = ?, 
-          employee_name = ?, 
-          project_name = ?, 
-          sub_products = ?, 
-          assigned_date = ?, 
-          deadline_date = ?, 
-          task_details = ?, 
-          task_description = ?,
-          estimated_time = ?,
-          task_status = ?,
-          remarks = ?,
-          created_by = ?,
-          admin_review = ?,
-          team_leader_review = ?,
-          reason_for_incomplete = ?,
+          employee_id = ?, date = ?, employee_name = ?, project_name = ?, sub_products = ?, 
+          assigned_date = ?, deadline_date = ?, task_details = ?, task_description = ?, 
+          estimated_time = ?, task_status = ?, remarks = ?, created_by = ?,
+          admin_review = ?, team_leader_review = ?, reason_for_incomplete = ?,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `;
 
       await attendanceConnection.execute(updateQuery, [
-        employee_id,
+        values.employee_id,
         currentDate,
-        employee_name,
-        project_name,
-        sub_products,
-        assigned_date,
-        deadline_date,
-        task_details,
-        task_description,
-        estimated_time,
-        task_status,
-        remarks,
-        created_by,
-        admin_review,
-        team_leader_review,
-        reason_for_incomplete,
+        values.employee_name,
+        values.project_name,
+        values.sub_products,
+        values.assigned_date,
+        values.deadline_date,
+        values.task_details,
+        values.task_description,
+        values.estimated_time,
+        values.task_status,
+        values.remarks,
+        values.created_by,
+        values.admin_review,
+        values.team_leader_review,
+        values.reason_for_incomplete,
         id,
       ]);
 
       res.json({ message: "Project updated successfully." });
     } else {
-      // If ID doesn't exist, insert a new record
       const insertQuery = `
-         INSERT INTO project_assign (
+        INSERT INTO project_assign (
           date, employee_id, employee_name, project_name, sub_products,
           assigned_date, deadline_date, task_details, task_description,
           estimated_time, task_status, remarks, created_by,
@@ -3543,30 +3641,29 @@ exports.project_assign = async (req, res) => {
 
       await attendanceConnection.execute(insertQuery, [
         currentDate,
-        employee_id,
-        employee_name,
-        project_name,
-        sub_products,
-        assigned_date,
-        deadline_date,
-        task_details,
-        task_description,
-        estimated_time,
-        task_status,
-        remarks,
-        created_by,
-        admin_review,
-        team_leader_review,
-        reason_for_incomplete,
+        values.employee_id,
+        values.employee_name,
+        values.project_name,
+        values.sub_products,
+        values.assigned_date,
+        values.deadline_date,
+        values.task_details,
+        values.task_description,
+        values.estimated_time,
+        values.task_status,
+        values.remarks,
+        values.created_by,
+        values.admin_review,
+        values.team_leader_review,
+        values.reason_for_incomplete,
       ]);
 
       res.json({ message: "Project assigned successfully." });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(200).json({ error: err.message });
   }
 };
-
 exports.get_assigned_project = async (req, res, next) => {
   try {
     const { id, employee_id, from_date, to_date } = req.body;
