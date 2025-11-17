@@ -1,13 +1,15 @@
-const { error } = require("console");
 const { connection, attendanceConnection } = require("../dbConfig");
 const crypto = require("crypto");
 const multer = require("multer");
 const path = require("path");
-const moment = require("moment-timezone"); // install this with: npm i moment-timezone
+const admin = require("firebase-admin");
+const moment = require('moment-timezone'); // install this with: npm i moment-timezone
 
 const hash = crypto.createHash("sha256"); // sha256 is the hashing algorithm
 hash.update("some data to hash");
 const hashedData = hash.digest("hex");
+const axios = require("axios");
+
 console.log(hashedData); // Output the hash
 
 exports.employee_list = async (req, res, next) => {
@@ -393,9 +395,9 @@ exports.addEmployee1 = async (req, res) => {
       const updatedFields = {
         name: name || undefined,
         userName: userName || undefined,
-        /* password: password
-          ? crypto.createHash("md5").update(password).digest("hex")
-          : undefined, */
+        // password: password
+        //   ? crypto.createHash("md5").update(password).digest("hex")
+        //   : undefined,
         userType: userType || undefined,
         designation: designation || undefined,
         domain: domain || undefined,
@@ -945,137 +947,161 @@ exports.deleteEmployee = async (req, res) => {
     });
   }
 };
+//old
+// exports.reportHistory_admin = async (req, res, next) => {
+//   let { domain, fromDate, toDate } = req.body;
+//   const page = parseInt(req.body.page) || 1;
+//   const limit = parseInt(req.body.limit) || 10;
+//   const offset = (page - 1) * limit;
 
-/* exports.reportHistory_admin = async (req, res, next) => {
-  let { domain, fromDate, toDate } = req.body;
-  const page = parseInt(req.body.page) || 1;
-  const limit = parseInt(req.body.limit) || 10;
-  const offset = (page - 1) * limit;
+//   function processResults(results) {
+//     const groupedResults = results.reduce((acc, row) => {
+//       const {
+//         employeeId,
+//         id,
+//         created_at,
+//         reportDetails,
+//         selectedProjectList,
+//         subCategoryList,
+//         reportDate,
+//         name,
+//         review,
+//         evaluation,
+//       } = row;
 
-  function processResults(results) {
-    const groupedResults = results.reduce((acc, row) => {
-      const {
-        employeeId, id,created_at, reportDetails, selectedProjectList, subCategoryList, reportDate, name
-      } = row;
+//       const report = {
+//         id,
+//         reportDetails,
+//         selectedProjectList,
+//         subCategoryList,
+//         employeeId,
+//         created_at,
+//         review,
+//         evaluation,
+//         name,
+//       };
 
-      const report = {
-        id,
-        reportDetails,
-        selectedProjectList,
-        subCategoryList,
-        employeeId,created_at,
-        name
-      };
+//       if (!acc[reportDate]) {
+//         acc[reportDate] = [];
+//       }
 
-      if (!acc[reportDate]) {
-        acc[reportDate] = [];
-      }
+//       acc[reportDate].push(report);
 
-      acc[reportDate].push(report);
+//       return acc;
+//     }, {});
+//     return Object.keys(groupedResults).map((reportDate) => ({
+//       reportDate,
+//       reports: groupedResults[reportDate],
+//     }));
+//   }
 
-      return acc;
-    }, {});
-    return Object.keys(groupedResults).map(reportDate => ({
-      reportDate,
-      reports: groupedResults[reportDate]
-    }));
-  }
+//   try {
+//     if (domain === "Development") {
+//       fromDate = fromDate || "CURDATE()";
+//       toDate = toDate || "CURDATE()";
 
-  try {
-    if (domain === 'Development') {
-      fromDate = fromDate || 'CURDATE()';
-      toDate = toDate || 'CURDATE()';
+//       const sql = `
+//         SELECT 
+//           er.id,
+//           er.employeeId,
+//           er.reportDetails,
+//           er.seletedProjectList,
+//           er.subCategoryList,er.created_at, 
+//           er.review,
+//           er.evaluation,
+//           DATE_FORMAT(er.reportDate, '%d-%b-%Y') AS reportDate,
+//           ud.name
+//         FROM 
+//           tbl_emp_reports er
+//         INNER JOIN 
+//           attendance_register.tbl_userdetails ud 
+//         ON 
+//           er.employeeId = ud.employeeId
+//         WHERE 
+//           er.isActive = '1' 
+//           AND er.reportDate BETWEEN '${fromDate}' AND '${toDate}'
+//         ORDER BY 
+//           er.reportDate ASC LIMIT ${limit} OFFSET ${offset}
+//       `;
 
-      const sql = `
-        SELECT 
-          er.id,
-          er.employeeId,
-          er.reportDetails,
-          er.seletedProjectList,
-          er.subCategoryList,er.created_at,
-          DATE_FORMAT(er.reportDate, '%d-%b-%Y') AS reportDate,
-          ud.name
-        FROM 
-          tbl_emp_reports er
-        INNER JOIN 
-          attendance_register.tbl_userdetails ud 
-        ON 
-          er.employeeId = ud.employeeId
-        WHERE 
-          er.isActive = '1' 
-          AND er.reportDate BETWEEN '${fromDate}' AND '${toDate}'
-        ORDER BY 
-          er.reportDate DESC LIMIT ${limit} OFFSET ${offset}
-      `;
+//       const countSql = `
+//         SELECT COUNT(*) as total
+//         FROM tbl_emp_reports 
+//         WHERE isActive = '1' 
+//         AND reportDate BETWEEN '${fromDate}' AND '${toDate}'
+//       `;
 
-      const countSql = `
-        SELECT COUNT(*) as total
-        FROM tbl_emp_reports 
-        WHERE isActive = '1' 
-        AND reportDate BETWEEN '${fromDate}' AND '${toDate}'
-      `;
+//       const [countResult] = await connection.execute(countSql);
+//       const totalRecords = countResult[0].total;
 
-      const [countResult] = await connection.execute(countSql);
-      const totalRecords = countResult[0].total;
+//       const [result] = await connection.execute(sql);
+//       const processedResults = processResults(result);
 
-      const [result] = await connection.execute(sql);
-      const processedResults = processResults(result);
+//       res.send({
+//         status: "Success",
+//         totalRecords,
+//         limit,
+//         page,
+//         data: processedResults,
+//       });
+//     } else {
+//       const sql = `
+//         SELECT 
+//           r.id,
+//           r.employeeId,
+//           e.name, 
+//           r.application,
+//           r.location,
+//           r.receivedDate,
+//           r.regNo,
+//           r.noOfForms,
+//           r.scanning,
+//           r.typing,
+//           r.photoshop,
+//           r.coraldraw,
+//           r.underPrinting,
+//           r.toBeDelivered,
+//           r.delivered,
+//           r.remarks,
+//           DATE_FORMAT(r.reportDate, '%d-%b-%Y') AS reportDate 
+//         FROM 
+//           report.tbl_idcard_reports r
+//         LEFT JOIN 
+//           attendance_register.tbl_userdetails e 
+//         ON 
+//           r.employeeId = e.employeeId 
+//         WHERE 
+//           r.isActive = '1'
+//           AND r.reportDate BETWEEN ${
+//             fromDate ? `"${fromDate}"` : "DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+//           }
+//           AND ${toDate ? `"${toDate}"` : "CURDATE()"}
+//         ORDER BY 
+//           r.reportDate ASC
+//         LIMIT ${limit} OFFSET ${offset}
+//       `;
 
-      res.send({ status: "Success", totalRecords, limit, page, data: processedResults });
+//       const countSql = `
+//         SELECT COUNT(*) as total
+//         FROM tbl_idcard_reports 
+//         WHERE isActive = '1'
+//         AND reportDate BETWEEN ${
+//           fromDate ? `"${fromDate}"` : "DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+//         } 
+//         AND ${toDate ? `"${toDate}"` : "CURDATE()"}
+//       `;
 
-    } else {
-      const sql = `
-        SELECT 
-          r.id,
-          r.employeeId,
-          e.name, 
-          r.application,
-          r.location,
-          r.receivedDate,
-          r.regNo,
-          r.noOfForms,
-          r.scanning,
-          r.typing,
-          r.photoshop,
-          r.coraldraw,
-          r.underPrinting,
-          r.toBeDelivered,
-          r.delivered,
-          r.remarks,
-          DATE_FORMAT(r.reportDate, '%d-%b-%Y') AS reportDate 
-        FROM 
-          report.tbl_idcard_reports r
-        LEFT JOIN 
-          attendance_register.tbl_userdetails e 
-        ON 
-          r.employeeId = e.employeeId 
-        WHERE 
-          r.isActive = '1'
-          AND r.reportDate BETWEEN ${fromDate ? `"${fromDate}"` : 'DATE_SUB(CURDATE(), INTERVAL 7 DAY)'}
-          AND ${toDate ? `"${toDate}"` : 'CURDATE()'}
-        ORDER BY 
-          r.reportDate DESC
-        LIMIT ${limit} OFFSET ${offset}
-      `;
+//       const [countResult] = await attendanceConnection.execute(countSql);
+//       const totalRecords = countResult[0].total;
 
-      const countSql = `
-        SELECT COUNT(*) as total
-        FROM tbl_idcard_reports 
-        WHERE isActive = '1'
-        AND reportDate BETWEEN ${fromDate ? `"${fromDate}"` : 'DATE_SUB(CURDATE(), INTERVAL 7 DAY)'} 
-        AND ${toDate ? `"${toDate}"` : 'CURDATE()'}
-      `;
+//       const [result] = await connection.execute(sql);
+//       res.send({ status: "Success", totalRecords, limit, page, data: result });
+//     }
+//   } catch (error) {
+//     next(error);
+//   }
+// };
 
-      const [countResult] = await connection.execute(countSql);
-      const totalRecords = countResult[0].total;
-
-      const [result] = await connection.execute(sql);
-      res.send({ status: "Success", totalRecords, limit, page, data: result });
-    }
-  } catch (error) {
-    next(error);
-  }
-}; */
 exports.reportHistory_admin = async (req, res, next) => {
   let { domain, fromDate, toDate, employeeId, page = 1, limit = 10 } = req.body;
   const offset = (page - 1) * limit;
@@ -1083,18 +1109,7 @@ exports.reportHistory_admin = async (req, res, next) => {
   function processResults(results) {
     const sortedResults = results
       .map((row) => {
-        const {
-          employeeId,
-          id,
-          created_at,
-          reportDetails,
-          selectedProjectList,
-          subCategoryList,
-          reportDate,
-          name,
-          review,
-          evaluation,
-        } = row;
+        const { employeeId, id, created_at, reportDetails, selectedProjectList, subCategoryList, reportDate, name, review, evaluation } = row;
 
         return {
           id,
@@ -1119,8 +1134,7 @@ exports.reportHistory_admin = async (req, res, next) => {
       fromDate = fromDate || "CURDATE()";
       toDate = toDate || "CURDATE()";
 
-      const selectedEmpFilter =
-        employeeId === "All" ? "" : `AND er.employeeId = '${employeeId}'`;
+      const selectedEmpFilter = employeeId === "All" ? "" : `AND er.employeeId = '${employeeId}'`;
 
       const sql = `
   SELECT 
@@ -1198,9 +1212,7 @@ exports.reportHistory_admin = async (req, res, next) => {
           r.employeeId = e.employeeId 
         WHERE 
           r.isActive = '1'
-          AND r.reportDate BETWEEN ${
-            fromDate ? `"${fromDate}"` : "DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
-          }
+          AND r.reportDate BETWEEN ${fromDate ? `"${fromDate}"` : "DATE_SUB(CURDATE(), INTERVAL 7 DAY)"}
           AND ${toDate ? `"${toDate}"` : "CURDATE()"}
         ORDER BY 
           r.reportDate DESC
@@ -1211,9 +1223,7 @@ exports.reportHistory_admin = async (req, res, next) => {
         SELECT COUNT(*) as total
         FROM tbl_idcard_reports 
         WHERE isActive = '1'
-        AND reportDate BETWEEN ${
-          fromDate ? `"${fromDate}"` : "DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
-        } 
+        AND reportDate BETWEEN ${fromDate ? `"${fromDate}"` : "DATE_SUB(CURDATE(), INTERVAL 7 DAY)"} 
         AND ${toDate ? `"${toDate}"` : "CURDATE()"}
       `;
 
@@ -1227,142 +1237,6 @@ exports.reportHistory_admin = async (req, res, next) => {
     next(error);
   }
 };
-// exports.reportHistory_admin = async (req, res, next) => {
-//   let { domain, fromDate, toDate } = req.body;
-//   const page = parseInt(req.body.page) || 1;
-//   const limit = parseInt(req.body.limit) || 10;
-//   const offset = (page - 1) * limit;
-
-//   function processResults(results) {
-//     const groupedResults = results.reduce((acc, row) => {
-//       const {
-//         employeeId, id, reportDetails, selectedProjectList, subCategoryList, reportDate, name,review,
-//         evaluation
-//       } = row;
-
-//       const report = {
-//         id,
-//         reportDetails,
-//         selectedProjectList,
-//         subCategoryList,
-//         employeeId,
-//         review,
-//         evaluation,
-//         name
-//       };
-
-//       if (!acc[reportDate]) {
-//         acc[reportDate] = [];
-//       }
-
-//       acc[reportDate].push(report);
-
-//       return acc;
-//     }, {});
-//     return Object.keys(groupedResults).map(reportDate => ({
-//       reportDate,
-//       reports: groupedResults[reportDate]
-//     }));
-//   }
-
-//   try {
-//     if (domain === 'Development') {
-//       fromDate = fromDate || 'CURDATE()';
-//       toDate = toDate || 'CURDATE()';
-
-//       const sql = `
-//         SELECT
-//           er.id,
-//           er.employeeId,
-//           er.reportDetails,
-//           er.seletedProjectList,
-//           er.subCategoryList,
-//           er.review,
-//           er.evaluation,
-//           DATE_FORMAT(er.reportDate, '%d-%b-%Y') AS reportDate,
-//           ud.name
-//         FROM
-//           tbl_emp_reports er
-//         INNER JOIN
-//           attendance_register.tbl_userdetails ud
-//         ON
-//           er.employeeId = ud.employeeId
-//         WHERE
-//           er.isActive = '1'
-//           AND er.reportDate BETWEEN '${fromDate}' AND '${toDate}'
-//         ORDER BY
-//           er.reportDate DESC LIMIT ${limit} OFFSET ${offset}
-//       `;
-
-//       const countSql = `
-//         SELECT COUNT(*) as total
-//         FROM tbl_emp_reports
-//         WHERE isActive = '1'
-//         AND reportDate BETWEEN '${fromDate}' AND '${toDate}'
-//       `;
-
-//       const [countResult] = await connection.execute(countSql);
-//       const totalRecords = countResult[0].total;
-
-//       const [result] = await connection.execute(sql);
-//       const processedResults = processResults(result);
-
-//       res.send({ status: "Success", totalRecords, limit, page, data: processedResults });
-
-//     } else {
-//       const sql = `
-//         SELECT
-//           r.id,
-//           r.employeeId,
-//           e.name,
-//           r.application,
-//           r.location,
-//           r.receivedDate,
-//           r.regNo,
-//           r.noOfForms,
-//           r.scanning,
-//           r.typing,
-//           r.photoshop,
-//           r.coraldraw,
-//           r.underPrinting,
-//           r.toBeDelivered,
-//           r.delivered,
-//           r.remarks,
-//           DATE_FORMAT(r.reportDate, '%d-%b-%Y') AS reportDate
-//         FROM
-//           report.tbl_idcard_reports r
-//         LEFT JOIN
-//           attendance_register.tbl_userdetails e
-//         ON
-//           r.employeeId = e.employeeId
-//         WHERE
-//           r.isActive = '1'
-//           AND r.reportDate BETWEEN ${fromDate ? `"${fromDate}"` : 'DATE_SUB(CURDATE(), INTERVAL 7 DAY)'}
-//           AND ${toDate ? `"${toDate}"` : 'CURDATE()'}
-//         ORDER BY
-//           r.reportDate DESC
-//         LIMIT ${limit} OFFSET ${offset}
-//       `;
-
-//       const countSql = `
-//         SELECT COUNT(*) as total
-//         FROM tbl_idcard_reports
-//         WHERE isActive = '1'
-//         AND reportDate BETWEEN ${fromDate ? `"${fromDate}"` : 'DATE_SUB(CURDATE(), INTERVAL 7 DAY)'}
-//         AND ${toDate ? `"${toDate}"` : 'CURDATE()'}
-//       `;
-
-//       const [countResult] = await connection.execute(countSql);
-//       const totalRecords = countResult[0].total;
-
-//       const [result] = await connection.execute(sql);
-//       res.send({ status: "Success", totalRecords, limit, page, data: result });
-//     }
-//   } catch (error) {
-//     next(error);
-//   }
-// };
-
 exports.create_project = async (req, res, next) => {
   const { id, projectName, subProject } = req.body;
   const subProjectString = JSON.stringify(subProject);
@@ -1468,10 +1342,10 @@ exports.delete_project = async (req, res, next) => {
 //       [Employee_id, currentMonth, currentYear]
 //     );
 
-//     if (saturdayOff.length > 0 && leaveTypes === "Saturday Off") {
+//     if (saturdayOff.length >= 2 && leaveTypes === "Saturday Off") {
 //       return res.status(400).send({
 //         status: "Error",
-//         message: "Saturday Off has already been used this month.",
+//         message: "Saturday Off has already been used twice this month.",
 //       });
 //     }
 
@@ -1500,6 +1374,36 @@ exports.delete_project = async (req, res, next) => {
 //     next(error);
 //   }
 // };
+// function getDayDifference(fromDate, toDate, inclusive = false) {
+//   //const startDate = new Date(startDateStr);
+//   //const endDate = new Date(endDateStr);
+
+//   const diffTime = toDate - fromDate;
+//   let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+//   // Include both start and end dates if requested
+//   if (inclusive) {
+//     diffDays += 1;
+//   }
+
+//   return diffDays;
+// }
+function getDayDifference(fromDate, toDate, inclusive = false) {
+  const diffTime = toDate - fromDate;
+  let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  // Always at least 1 day (same-day leave counts as 1)
+  if (diffDays === 0) {
+    diffDays = 1;
+  }
+
+  // Include both start and end dates if requested
+  if (inclusive) {
+    diffDays += 1;
+  }
+
+  return diffDays;
+}
 
 exports.applyLeave = async (req, res, next) => {
   let {
@@ -1512,7 +1416,7 @@ exports.applyLeave = async (req, res, next) => {
     endDate,
     reason,
   } = req.body;
-  leaveTimingCategory = parseInt(leaveTimingCategory);
+    leaveTimingCategory = parseInt(leaveTimingCategory);
   console.log({
     Employee_id,
     userName,
@@ -1524,90 +1428,113 @@ exports.applyLeave = async (req, res, next) => {
     reason,
   });
   try {
+    console.log('dsdsdghf');
     const start = new Date(startDate);
     const end = new Date(endDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    // No Past Dates
-    if (start < today) {
-      return res.status(400).json({
+    const numberOfDays = getDayDifference(start, end);
+    // Condition 1: Disallow past dates for any leave type
+    if (start < today || end < today || end < start) {
+      return res.json({
         status: "Error",
-        message: "Cannot apply for past dates.",
+        message: "Cannot select past dates for leave.",
       });
     }
-    // Skip rules check for Permission leaves
-    if (leaveTypes !== "Permission") {
-      const sql = "SELECT * FROM rules_form ORDER BY id DESC LIMIT 1";
 
-      try {
-        const rulesResult = await attendanceConnection.execute(sql);
-        const rules = rulesResult[0];
-        const currentMonth = start.getMonth() + 1;
-        const currentYear = start.getFullYear();
-        const dayOfWeek = start.getDay(); // 6 = Saturday
-        // Casual Leave Checks
-        if (leaveTypes === "Casual Leave") {
-          if (startDate !== endDate) {
-            return res.status(400).json({
-              status: "Error",
-              message: "Casual Leave must be for a single day only.",
-            });
-          }
-          const [casualExists] = await attendanceConnection.execute(
-            `SELECT 1 FROM leaverequest_form
-             WHERE Employee_id = ? AND leaveTypes = 'Casual Leave'
-             AND MONTH(startDate) = ? AND YEAR(startDate) = ?`,
-            [Employee_id, currentMonth, currentYear]
-          );
-          if (casualExists.length > 0) {
-            return res.status(400).json({
-              status: "Error",
-              message: "Casual Leave already applied this month.",
-            });
-          }
-        }
-        // Saturday Off Checks
-        if (leaveTypes === "Saturday Off") {
-          if (startDate !== endDate) {
-            return res.status(400).json({
-              status: "Error",
-              message: "Saturday Off must be for a single day only.",
-            });
-          }
-          if (dayOfWeek !== 6) {
-            return res.status(400).json({
-              status: "Error",
-              message: "Saturday Off can only be applied on Saturdays.",
-            });
-          }
-          const [satOffCount] = await attendanceConnection.execute(
-            `SELECT COUNT(*) AS count FROM leaverequest_form
-             WHERE Employee_id = ? AND leaveTypes = 'Saturday Off'
-             AND MONTH(startDate) = ? AND YEAR(startDate) = ?`,
-            [Employee_id, currentMonth, currentYear]
-          );
-          if (satOffCount[0].count >= (rules?.saturday_off || 0)) {
-            return res.status(400).json({
-              status: "Error",
-              message: `Saturday Off limit reached for this month.`,
-            });
-          }
-        }
-      } catch (error) {
-        console.log(error);
-        // If rules table doesn't exist but it's not a Permission leave
-        if (leaveTypes !== "Permission") {
-          return res.status(500).json({
-            status: "Error",
-            message: "System configuration error. Please contact admin.",
-          });
-        }
+    //  Condition 2: For specific leave types, endDate must not be before startDate
+    if (
+      ["Loss of Pay", "Work From Home", "Maternity Leave"].includes(
+        leaveTypes
+      ) &&
+      end < start
+    ) {
+      return res.json({
+        status: "Error",
+        message:
+          "End date cannot be before start date for the selected leave type.",
+      });
+    }
+
+    const currentMonth = start.getMonth() + 1;
+    const currentYear = start.getFullYear();
+    const dayOfWeek = start.getDay(); // 6 = Saturday
+
+    //  Casual Leave Checks
+    if (leaveTypes === "Casual Leave") {
+      if (startDate !== endDate) {
+        return res.json({
+          status: "Error",
+          message: "Casual Leave must be for a single day only.",
+        });
+      }
+
+      const [casualExists] = await attendanceConnection.execute(
+        `SELECT 1 FROM leaverequest_form 
+         WHERE Employee_id = ? AND leaveTypes = 'Casual Leave'
+         AND MONTH(startDate) = ? AND YEAR(startDate) = ?`,
+        [Employee_id, currentMonth, currentYear]
+      );
+
+      if (casualExists.length > 0) {
+        return res.json({
+          status: "Error",
+          message: "Casual Leave already applied this month.",
+        });
       }
     }
-    // No Overlapping Leaves (including Permission)
+
+    //  Saturday Off Checks
+    if (leaveTypes === "Saturday Off") {
+      if (startDate !== endDate) {
+        return res.json({
+          status: "Error",
+          message: "Saturday Off must be for a single day only.",
+        });
+      }
+      if (dayOfWeek !== 6) {
+        return res.json({
+          status: "Error",
+          message: "Saturday Off can only be applied on Saturdays.",
+        });
+      }
+
+      const [satOffCount] = await attendanceConnection.execute(
+        `SELECT COUNT(*) AS count FROM leaverequest_form 
+         WHERE Employee_id = ? AND leaveTypes = 'Saturday Off'
+         AND MONTH(startDate) = ? AND YEAR(startDate) = ?`,
+        [Employee_id, currentMonth, currentYear]
+      );
+
+      if (satOffCount[0].count >= 2) {
+        return res.json({
+          status: "Error",
+          message: "Saturday Off already used 2 times this month.",
+        });
+      }
+    }
+
+    // Permission Leave Limit Check
+    if (leaveTypes === "Permission") {
+      const [permissionCount] = await attendanceConnection.execute(
+        `SELECT COUNT(*) AS count FROM leaverequest_form 
+         WHERE Employee_id = ? AND leaveTypes = 'Permission'
+         AND MONTH(startDate) = ? AND YEAR(startDate) = ?`,
+        [Employee_id, currentMonth, currentYear]
+      );
+
+      if (permissionCount[0].count >= 3) {
+        return res.json({
+          status: "Error",
+          message: "Permission leave limit exceeded for this month.",
+        });
+      }
+    }
+
+    //  No Overlapping Leaves
     const [overlapCheck] = await attendanceConnection.execute(
       `SELECT 1 FROM leaverequest_form 
-       WHERE Employee_id = ? AND status != 'Rejected' AND (
+       WHERE Employee_id = ? AND (
          (startDate <= ? AND endDate >= ?) OR 
          (startDate <= ? AND endDate >= ?)
        )`,
@@ -1615,43 +1542,64 @@ exports.applyLeave = async (req, res, next) => {
     );
 
     if (overlapCheck.length > 0) {
-      return res.status(400).json({
+      return res.json({
         status: "Error",
         message: "Leave already applied for one or more selected dates.",
       });
     }
 
     // Leave Duration Calculation
-    let noOfDays = 0;
-    if (leaveTypes === "Permission") {
-      // Permission leaves don't count as days
-      noOfDays = 0;
-    } else {
-      noOfDays = (end - start) / (1000 * 3600 * 24) + 1;
-      if (startDate === endDate) {
-        if (leaveTimes === "Full Day") noOfDays = 1;
-        else if (leaveTimes === "Halfday") noOfDays = 0.5;
-      } else if (leaveTimes === "Halfday") {
-        noOfDays -= 0.5;
-      }
+    let noOfDays = (end - start) / (1000 * 3600 * 24) + 1;
+    if (startDate === endDate) {
+      if (leaveTimes === "Full Day") noOfDays = 1;
+      else if (leaveTimes === "Halfday" || leaveTypes === "Permission")
+        noOfDays = 0;
+    } else if (leaveTimes === "Halfday") {
+      noOfDays -= 0.5;
     }
+
+    // Auto-set reason for Saturday Off
+    const leaveReason =
+      leaveTypes === "Saturday Off" ? "Saturday Off" : reason || null;
+
     // Insert leave
     const [result] = await attendanceConnection.execute(
       `INSERT INTO leaverequest_form 
-       (Employee_id, userName, leaveTypes, leaveTimes,leaveTimingCategory,startDate, endDate, reason, noOfDays, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?,?, 'Pending')`,
+   (Employee_id, userName, leaveTypes, leaveTimes,leaveTimingCategory, startDate, endDate, reason, noOfDays, status)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,'Pending')`,
       [
-        Employee_id,
-        userName,
-        leaveTypes,
-        leaveTimes,
-        leaveTimingCategory,
-        startDate,
-        endDate,
-        reason,
-        noOfDays,
+        Employee_id ?? null,
+        userName ?? null,
+        leaveTypes ?? null,
+        leaveTimes ?? null,
+        leaveTimingCategory?? null,
+        startDate ?? null,
+        endDate ?? null,
+        leaveReason ?? null,
+        noOfDays ?? 0,
       ]
     );
+    let response;
+    let error;
+    const url = " http://124.123.64.185:83/get_fcmToken";
+    const payload = {
+      employeeId: Employee_id,
+      userType: "admin",
+      numberOfDays: numberOfDays,
+      updateStatus: "",
+    };
+
+    try {
+      response = await axios.post(url, payload);
+       console.log(JSON.stringify(payload))
+      console.log("Response:", response.data);
+    } catch (error) {
+      console.error(
+        "Error calling get_fcmToken:",
+        error.response?.data || error.message
+      );
+    }
+
     return res.status(200).json({
       status: "Success",
       message: "Leave applied successfully.",
@@ -1660,12 +1608,44 @@ exports.applyLeave = async (req, res, next) => {
       },
     });
   } catch (error) {
-    console.error("Error applying leave:", error);
-    res.status(500).json({
-      status: "Error",
-      message: "An error occurred while applying leave.",
-      error: error.message,
-    });
+    next(error);
+  }
+};
+
+//employee get
+exports.getLeaveApplications = async (req, res, next) => {
+  const { Employee_id, startDate, endDate } = req.body;
+
+  try {
+    // Validate input
+    if (!Employee_id) {
+      return res
+        .status(400)
+        .send({ status: "Error", message: "Employee ID is required" });
+    }
+    if (!startDate || !endDate) {
+      // Use startDate and endDate here
+      return res.status(400).send({
+        status: "Error",
+        message: "Both startDate and endDate are required",
+      });
+    }
+
+    // Build SQL query with filters
+    let sql = `
+      SELECT * FROM leaverequest_form
+      WHERE Employee_id = ?
+      AND startDate >= ? 
+      AND endDate <= ?
+    `;
+
+    const params = [Employee_id, startDate, endDate];
+
+    const [results] = await attendanceConnection.execute(sql, params);
+
+    res.send({ status: "Success", data: results });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -1829,9 +1809,7 @@ exports.getLeaveRequestsAll = async (req, res, next) => {
       FROM tbl_userdetails;
     `;
 
-    const [employeeDetails] = await attendanceConnection.execute(
-      fetchEmployeeNamesQuery
-    );
+    const [employeeDetails] = await attendanceConnection.execute(fetchEmployeeNamesQuery);
 
     // Map employeeId to name
     const employeeMap = employeeDetails.reduce((acc, emp) => {
@@ -1843,11 +1821,11 @@ exports.getLeaveRequestsAll = async (req, res, next) => {
     leaveRequests.forEach((leave) => {
       leave.employeeName = employeeMap[leave.Employee_id] || "Unknown";
 
-      if (leave.leaveTimes && typeof leave.leaveTimes === "string") {
+      if (leave.leaveTimes && typeof leave.leaveTimes === 'string') {
         const val = leave.leaveTimes.toLowerCase().trim();
-        if (val === "half day") {
+        if (val === 'half day') {
           leave.leaveDuration = 0.5;
-        } else if (val === "full day") {
+        } else if (val === 'full day') {
           leave.leaveDuration = 1;
         } else {
           const parsed = parseFloat(val);
@@ -1874,12 +1852,13 @@ exports.getLeaveRequestsAll = async (req, res, next) => {
   }
 };
 
+
 exports.updateLeaveStatus = async (req, res, next) => {
   const { leaveId, status, remarks } = req.body; // 'remarks' in the payload
 
   try {
     if (!leaveId || !status) {
-      return res.status(400).json({
+      return res.send({
         status: "Error",
         message: "Missing required parameters: leaveId or status",
       });
@@ -1887,7 +1866,7 @@ exports.updateLeaveStatus = async (req, res, next) => {
 
     const allowedStatuses = ["Accepted", "Rejected", "Pending"];
     if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({
+      return res.send({
         status: "Error",
         message: `Invalid status. Allowed values are: ${allowedStatuses.join(
           ", "
@@ -1937,11 +1916,40 @@ exports.updateLeaveStatus = async (req, res, next) => {
     );
 
     if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ status: "Error", message: "Leave request not found" });
+      return res.send({ status: "Error", message: "Leave request not found" });
+    }
+    const getEmployeeIdQuery = `
+    SELECT * FROM leaverequest_form  
+    WHERE lid = ?`;
+
+    const [rows] = await attendanceConnection.execute(getEmployeeIdQuery, [
+      leaveId,
+    ]);
+
+    if (rows.length === 0) {
+      throw new Error("No leave request found with the provided leaveId.");
     }
 
+    const employeeId = rows[0].Employee_id;
+    const url = " http://124.123.64.185:83/get_fcmToken";
+
+    //const url = "http://192.168.2.252:83/get_fcmToken";
+    const payload = {
+      employeeId: employeeId,
+      userType: "employee",
+      numberOfDays: 0,
+      updateStatus: status,
+    };
+    console.log(payload);
+    try {
+      const response = await axios.post(url, payload);
+      console.log("Response:", response.data);
+    } catch (error) {
+      console.error(
+        "Error calling get_fcmToken:",
+        error.response?.data || error.message
+      );
+    }
     res.status(200).json({
       status: "Success",
       message: "Leave status updated successfully",
@@ -1949,6 +1957,7 @@ exports.updateLeaveStatus = async (req, res, next) => {
         leaveId,
         updatedStatus: status,
         rejectReason: remarks,
+        employeeId: employeeId,
         acceptDate: status === "Accepted" ? currentDate : null,
       },
     });
@@ -2021,23 +2030,14 @@ exports.create_event = async (req, res) => {
     eventEndDate,
     noOfDays,
     photoUrl,
-    isActive,
+    isActive
   } = req.body;
 
   console.log("Received request body:", req.body);
 
   // Validate required fields
-  if (
-    !eventType ||
-    !eventName ||
-    !description ||
-    !eventStartDate ||
-    !eventEndDate ||
-    !noOfDays
-  ) {
-    return res
-      .status(400)
-      .json({ status: "Error", message: "Missing required fields" });
+  if (!eventType || !eventName || !description || !eventStartDate || !eventEndDate || !noOfDays) {
+    return res.status(400).json({ status: "Error", message: "Missing required fields" });
   }
 
   const createdAt = new Date();
@@ -2059,7 +2059,7 @@ exports.create_event = async (req, res) => {
     photoUrl || "",
     isActive ?? 1,
     createdAt,
-    updatedAt,
+    updatedAt
   ];
 
   try {
@@ -2068,15 +2068,16 @@ exports.create_event = async (req, res) => {
     return res.status(200).json({
       status: "Success",
       message: "Event created successfully",
-      id: result.insertId,
+      id: result.insertId
     });
   } catch (err) {
     console.error("❌ Insert error:", err);
-    return res
-      .status(500)
-      .json({ status: "Error", message: "Database insert failed" });
+    return res.status(500).json({ status: "Error", message: "Database insert failed" });
   }
 };
+
+
+
 
 // exports.dailypunch = async (req, res) => {
 //     const { from_date, to_date } = req.body;
@@ -2109,9 +2110,11 @@ exports.dailypunch = async (req, res) => {
     let params = [];
 
     if (date) {
+      // Query for a specific day
       query = `SELECT * FROM tbl_dailypunch WHERE CAST(logTime AS DATE) = ?`;
       params = [date];
     } else if (from_date && to_date) {
+      // Query for a date range
       query = `SELECT * FROM tbl_dailypunch WHERE CAST(logTime AS DATE) BETWEEN ? AND ?`;
       params = [from_date, to_date];
     } else {
@@ -2126,279 +2129,6 @@ exports.dailypunch = async (req, res) => {
     res.status(500).send("Server error");
   }
 };
-// exports.dailypunch1 = async (req, res) => {
-//   const { date, from_date, to_date, employeeId, punchType } = req.body;
-
-//   try {
-//     //get rules
-//     const rulesQuery = "SELECT * FROM rules_master";
-//     const [rulesResult] = await attendanceConnection.execute(rulesQuery);
-//     const rules = rulesResult || {};
-//     // First get the raw punch data
-//     let baseQuery = "SELECT * FROM tbl_dailypunch";
-//     let conditions = [];
-//     let params = [];
-
-//     // Date filtering
-//     if (date) {
-//       conditions.push("CAST(logTime AS DATE) = ?");
-//       params.push(date);
-//     } else if (from_date && to_date) {
-//       conditions.push("CAST(logTime AS DATE) BETWEEN ? AND ?");
-//       params.push(from_date, to_date);
-//     } else {
-//       return res.status(400).send("Please provide a valid date or date range");
-//     }
-
-//     // Employee filter
-//     if (employeeId) {
-//       conditions.push("employeeId = ?");
-//       params.push(employeeId);
-//     }
-
-//     // Punch type filter (only if not "Late Punches")
-//     if (punchType && punchType !== "Late Punches") {
-//       conditions.push("logType = ?");
-//       params.push(punchType);
-//     }
-
-//     // Build the final query
-//     if (conditions.length > 0) {
-//       baseQuery += " WHERE " + conditions.join(" AND ");
-//     }
-
-//     // Add sorting by logSno
-//     baseQuery += " ORDER BY logSno ASC";
-
-//     const [rows] = await attendanceConnection.execute(baseQuery, params);
-
-//     // Get employee list for names
-//     const [employees] = await attendanceConnection.execute("SELECT employeeId, name FROM tbl_userdetails");
-//     const employeeMap = employees.reduce((acc, emp) => {
-//       acc[emp.employeeId] = emp.name;
-//       return acc;
-//     }, {});
-
-//     // Get permission leaves (both Accepted and Pending)
-//     const [leaves] = await attendanceConnection.execute(
-//       `SELECT
-//         Employee_id,
-//         leaveTimes,
-//         leaveTypes,
-//         status,
-//         startDate,
-//         endDate
-//        FROM leaverequest_form
-//        WHERE leaveTypes = 'Permission'
-//        AND status IN ('Accepted', 'Pending')`
-//     );
-
-//     // Group the data as frontend expects
-//     const groupedData = {};
-
-//     rows.forEach((row) => {
-//       const dateStr = new Date(row.logTime).toLocaleDateString("en-GB");
-//       const dateObj = new Date(row.logTime);
-//       dateObj.setHours(0, 0, 0, 0); // Normalize date for comparison
-//       const key = `${row.employeeId}-${dateStr}`;
-
-//       if (!groupedData[key]) {
-//         groupedData[key] = {
-//           key,
-//           id: row.id,
-//           employeeId: row.employeeId,
-//           employeeName: employeeMap[row.employeeId] || row.employeeId,
-//           place: row.place1,
-//           date: dateStr,
-//           punchIn: [],
-//           punchOut: [],
-//           device: row.device,
-//           dateObj: dateObj,
-//         };
-//       }
-
-//       if (row.logType === "In") {
-//         groupedData[key].punchIn.push(row.logTime);
-//       } else if (row.logType === "Out") {
-//         groupedData[key].punchOut.push(row.logTime);
-//       }
-//     });
-
-//     // Calculate all the derived fields like frontend does
-//     const result = Object.values(groupedData).map((item) => {
-//       // console.log("Processing item:", item);
-//       const inTimes = item.punchIn.map((time) => new Date(time));
-//       const outTimes = item.punchOut.map((time) => (time ? new Date(time) : null)).filter((t) => t !== null);
-
-//       let totalHoursFormatted = "0 hr 0 min";
-//       let netWorkingHoursFormatted = "0 hr 0 min";
-//       let breakHoursFormatted = "0 hr 0 min";
-//       let lateInFormatted = "";
-//       let earlyOutFormatted = "";
-
-//       // Late in calculation with permission leave adjustment
-//       if (inTimes.length > 0) {
-//         const firstPunchRaw = new Date(Math.min(...inTimes.map((t) => t.getTime())));
-//         const firstPunch = new Date(firstPunchRaw);
-//         firstPunch.setSeconds(0);
-//         firstPunch.setMilliseconds(0);
-
-//         const lateThreshold = new Date(firstPunch);
-
-//         const firstPunchDate = moment(lateThreshold).format("YYYY-MM-DD");
-
-//         // Step 1: Filter rules where validFrom <= firstPunchDate
-//         const applicableRules = rules.filter((rule) => {
-//           const validFrom = moment(rule.validFrom).format("YYYY-MM-DD");
-//           return validFrom <= firstPunchDate;
-//         });
-
-//         // Step 2: Get the rule with the most recent validFrom
-//         const latestApplicableRule = applicableRules.reduce((latest, current) => {
-//           const latestDate = moment(latest.validFrom).format("YYYY-MM-DD");
-//           const currentDate = moment(current.validFrom).format("YYYY-MM-DD");
-//           return currentDate > latestDate ? current : latest;
-//         }, applicableRules[0]);
-
-//         let [hours, minutes, seconds] = latestApplicableRule.officeStartTime.split(":").map(Number);
-
-//         lateThreshold.setHours(hours, minutes, seconds, 0);
-
-//         // lateThreshold.setHours(9, 30, 0, 0);
-
-//         if (firstPunch > lateThreshold) {
-//           let lateDiffMs = firstPunch - lateThreshold;
-
-//           // Find applicable permission leaves for this employee on this date
-//           const applicableLeaves = leaves.filter((leave) => {
-//             return leave.Employee_id === item.employeeId && item.dateObj >= new Date(leave.startDate) && item.dateObj <= new Date(leave.endDate);
-//           });
-
-//           // Calculate total permission seconds (using the same logic as get_late_punch)
-//           let permissionSeconds = 0;
-//           applicableLeaves.forEach((leave) => {
-//             if (leave.leaveTimes.includes("hour")) {
-//               const hours = parseInt(leave.leaveTimes) || 0;
-//               permissionSeconds += hours * 3600;
-//             }
-//           });
-
-//           // Adjust for permission leaves (convert to milliseconds)
-//           lateDiffMs -= permissionSeconds * 1000;
-
-//           // Only show late time if still late after adjustment
-//           if (lateDiffMs > 0) {
-//             const lateDiffMinutes = Math.floor(lateDiffMs / (1000 * 60));
-//             const lateHours = Math.floor(lateDiffMinutes / 60);
-//             const lateMinutes = lateDiffMinutes % 60;
-//             lateInFormatted = `${lateHours} hr ${lateMinutes} min`;
-//           }
-//         }
-//       }
-
-//       // Working hours calculation
-//       if (inTimes.length > 0 && outTimes.length > 0) {
-//         if (inTimes.length === outTimes.length) {
-//           if (inTimes.length === 1) {
-//             const firstPunch = new Date(Math.min(...inTimes.map((t) => t.getTime())));
-//             const lastPunch = outTimes[0];
-//             const totalMs = lastPunch - firstPunch;
-//             const totalMinutes = Math.round(totalMs / (1000 * 60));
-//             const totalHours = Math.floor(totalMinutes / 60);
-//             const remainingMinutes = totalMinutes % 60;
-//             totalHoursFormatted = `${totalHours} hr ${remainingMinutes} min`;
-//             breakHoursFormatted = "0 hr 0 min";
-//             netWorkingHoursFormatted = totalHoursFormatted;
-//           } else {
-//             const firstPunch = new Date(Math.min(...inTimes.map((t) => t.getTime())));
-//             const lastPunch = new Date(Math.max(...outTimes.map((t) => t.getTime())));
-//             const totalMs = lastPunch - firstPunch;
-//             const totalMinutes = Math.round(totalMs / (1000 * 60));
-//             const totalHours = Math.floor(totalMinutes / 60);
-//             const remainingMinutes = totalMinutes % 60;
-//             totalHoursFormatted = `${totalHours} hr ${remainingMinutes} min`;
-
-//             let breakMinutes = 0;
-//             let events = [];
-//             item.punchIn.forEach((time) => {
-//               events.push({ time: new Date(time), type: "In" });
-//             });
-//             item.punchOut.forEach((time) => {
-//               if (time) {
-//                 events.push({ time: new Date(time), type: "Out" });
-//               }
-//             });
-//             events.sort((a, b) => a.time - b.time);
-//             for (let i = 0; i < events.length - 1; i++) {
-//               if (events[i].type === "Out" && events[i + 1].type === "In") {
-//                 const diff = (events[i + 1].time - events[i].time) / (1000 * 60);
-//                 if (diff > 0) {
-//                   breakMinutes += diff;
-//                 }
-//               }
-//             }
-//             const breakHrs = Math.floor(breakMinutes / 60);
-//             const breakRemaining = Math.round(breakMinutes % 60);
-//             breakHoursFormatted = `${breakHrs} hr ${breakRemaining} min`;
-
-//             const netMinutes = totalMinutes - breakMinutes;
-//             const netHours = Math.floor(netMinutes / 60);
-//             const netRemaining = Math.round(netMinutes % 60);
-//             netWorkingHoursFormatted = `${netHours} hr ${netRemaining} min`;
-//           }
-
-//           // Early out calculation
-//           const lastPunch = new Date(Math.max(...outTimes.map((t) => t.getTime())));
-//           const earlyOutThreshold = new Date(lastPunch);
-
-//           const lastPunchDate = moment(earlyOutThreshold).format("YYYY-MM-DD");
-
-//           // Step 1: Filter rules where validFrom <= firstPunchDate
-//           const applicableRules = rules.filter((rule) => {
-//             const validFrom = moment(rule.validFrom).format("YYYY-MM-DD");
-//             return validFrom <= lastPunchDate;
-//           });
-
-//           // Step 2: Get the rule with the most recent validFrom
-//           const latestApplicableRule = applicableRules.reduce((latest, current) => {
-//             const latestDate = moment(latest.validFrom).format("YYYY-MM-DD");
-//             const currentDate = moment(current.validFrom).format("YYYY-MM-DD");
-//             return currentDate > latestDate ? current : latest;
-//           }, applicableRules[0]);
-
-//           let [hours, minutes, seconds] = latestApplicableRule.officeEndTime.split(":").map(Number);
-
-//           earlyOutThreshold.setHours(hours, minutes, seconds, 0);
-
-//           // earlyOutThreshold.setHours(18, 30, 0, 0);
-//           if (lastPunch < earlyOutThreshold) {
-//             const earlyDiffMs = earlyOutThreshold - lastPunch;
-//             const earlyDiffMinutes = Math.round(earlyDiffMs / (1000 * 60));
-//             const earlyHours = Math.floor(earlyDiffMinutes / 60);
-//             const earlyMinutes = earlyDiffMinutes % 60;
-//             earlyOutFormatted = `${earlyHours} hr ${earlyMinutes} min`;
-//           }
-//         }
-//       }
-
-//       return {
-//         ...item,
-//         totalHours: totalHoursFormatted,
-//         breakHours: breakHoursFormatted,
-//         netWorkingHours: netWorkingHoursFormatted,
-//         lateIn: lateInFormatted,
-//         earlyOut: earlyOutFormatted,
-//       };
-//     });
-
-//     res.json(result);
-//   } catch (error) {
-//     console.error("Error fetching data:", error);
-//     res.status(500).send("Server error");
-//   }
-// };
-
-// POST /getSinglePunch
 exports.dailypunch1 = async (req, res) => {
   const { date, from_date, to_date, employeeId, punchType } = req.body;
 
@@ -2407,7 +2137,6 @@ exports.dailypunch1 = async (req, res) => {
     const rulesQuery = "SELECT * FROM rules_master";
     const [rulesResult] = await attendanceConnection.execute(rulesQuery);
     const rules = rulesResult || {};
-
     // First get the raw punch data
     let baseQuery = "SELECT * FROM tbl_dailypunch";
     let conditions = [];
@@ -2447,9 +2176,7 @@ exports.dailypunch1 = async (req, res) => {
     const [rows] = await attendanceConnection.execute(baseQuery, params);
 
     // Get employee list for names
-    const [employees] = await attendanceConnection.execute(
-      "SELECT employeeId, name FROM tbl_userdetails"
-    );
+    const [employees] = await attendanceConnection.execute("SELECT employeeId, name FROM tbl_userdetails");
     const employeeMap = employees.reduce((acc, emp) => {
       acc[emp.employeeId] = emp.name;
       return acc;
@@ -2469,7 +2196,7 @@ exports.dailypunch1 = async (req, res) => {
        AND status IN ('Accepted', 'Pending')`
     );
 
-    // Group the data
+    // Group the data as frontend expects
     const groupedData = {};
 
     rows.forEach((row) => {
@@ -2500,12 +2227,11 @@ exports.dailypunch1 = async (req, res) => {
       }
     });
 
-    // Calculate derived fields
+    // Calculate all the derived fields like frontend does
     const result = Object.values(groupedData).map((item) => {
+      // console.log("Processing item:", item);
       const inTimes = item.punchIn.map((time) => new Date(time));
-      const outTimes = item.punchOut
-        .map((time) => (time ? new Date(time) : null))
-        .filter((t) => t !== null);
+      const outTimes = item.punchOut.map((time) => (time ? new Date(time) : null)).filter((t) => t !== null);
 
       let totalHoursFormatted = "0 hr 0 min";
       let netWorkingHoursFormatted = "0 hr 0 min";
@@ -2513,48 +2239,45 @@ exports.dailypunch1 = async (req, res) => {
       let lateInFormatted = "";
       let earlyOutFormatted = "";
 
-      // Late in calculation
+      // Late in calculation with permission leave adjustment
       if (inTimes.length > 0) {
-        const firstPunchRaw = new Date(
-          Math.min(...inTimes.map((t) => t.getTime()))
-        );
+        const firstPunchRaw = new Date(Math.min(...inTimes.map((t) => t.getTime())));
         const firstPunch = new Date(firstPunchRaw);
         firstPunch.setSeconds(0);
         firstPunch.setMilliseconds(0);
 
         const lateThreshold = new Date(firstPunch);
+
         const firstPunchDate = moment(lateThreshold).format("YYYY-MM-DD");
 
+        // Step 1: Filter rules where validFrom <= firstPunchDate
         const applicableRules = rules.filter((rule) => {
           const validFrom = moment(rule.validFrom).format("YYYY-MM-DD");
           return validFrom <= firstPunchDate;
         });
 
-        const latestApplicableRule = applicableRules.reduce(
-          (latest, current) => {
-            const latestDate = moment(latest.validFrom).format("YYYY-MM-DD");
-            const currentDate = moment(current.validFrom).format("YYYY-MM-DD");
-            return currentDate > latestDate ? current : latest;
-          },
-          applicableRules[0]
-        );
+        // Step 2: Get the rule with the most recent validFrom
+        const latestApplicableRule = applicableRules.reduce((latest, current) => {
+          const latestDate = moment(latest.validFrom).format("YYYY-MM-DD");
+          const currentDate = moment(current.validFrom).format("YYYY-MM-DD");
+          return currentDate > latestDate ? current : latest;
+        }, applicableRules[0]);
 
-        let [hours, minutes, seconds] = latestApplicableRule.officeStartTime
-          .split(":")
-          .map(Number);
+        let [hours, minutes, seconds] = latestApplicableRule.officeStartTime.split(":").map(Number);
+
         lateThreshold.setHours(hours, minutes, seconds, 0);
+
+        // lateThreshold.setHours(9, 30, 0, 0);
 
         if (firstPunch > lateThreshold) {
           let lateDiffMs = firstPunch - lateThreshold;
 
+          // Find applicable permission leaves for this employee on this date
           const applicableLeaves = leaves.filter((leave) => {
-            return (
-              leave.Employee_id === item.employeeId &&
-              item.dateObj >= new Date(leave.startDate) &&
-              item.dateObj <= new Date(leave.endDate)
-            );
+            return leave.Employee_id === item.employeeId && item.dateObj >= new Date(leave.startDate) && item.dateObj <= new Date(leave.endDate);
           });
 
+          // Calculate total permission seconds (using the same logic as get_late_punch)
           let permissionSeconds = 0;
           applicableLeaves.forEach((leave) => {
             if (leave.leaveTimes.includes("hour")) {
@@ -2563,8 +2286,10 @@ exports.dailypunch1 = async (req, res) => {
             }
           });
 
+          // Adjust for permission leaves (convert to milliseconds)
           lateDiffMs -= permissionSeconds * 1000;
 
+          // Only show late time if still late after adjustment
           if (lateDiffMs > 0) {
             const lateDiffMinutes = Math.floor(lateDiffMs / (1000 * 60));
             const lateHours = Math.floor(lateDiffMinutes / 60);
@@ -2574,74 +2299,81 @@ exports.dailypunch1 = async (req, res) => {
         }
       }
 
-      // Working hours + early out
+      // Working hours calculation
       if (inTimes.length > 0 && outTimes.length > 0) {
-        const firstPunch = new Date(
-          Math.min(...inTimes.map((t) => t.getTime()))
-        );
-        const lastPunch = new Date(
-          Math.max(...outTimes.map((t) => t.getTime()))
-        );
+        if (inTimes.length === outTimes.length) {
+          if (inTimes.length === 1) {
+            const firstPunch = new Date(Math.min(...inTimes.map((t) => t.getTime())));
+            const lastPunch = outTimes[0];
+            const totalMs = lastPunch - firstPunch;
+            const totalMinutes = Math.round(totalMs / (1000 * 60));
+            const totalHours = Math.floor(totalMinutes / 60);
+            const remainingMinutes = totalMinutes % 60;
+            totalHoursFormatted = `${totalHours} hr ${remainingMinutes} min`;
+            breakHoursFormatted = "0 hr 0 min";
+            netWorkingHoursFormatted = totalHoursFormatted;
+          } else {
+            const firstPunch = new Date(Math.min(...inTimes.map((t) => t.getTime())));
+            const lastPunch = new Date(Math.max(...outTimes.map((t) => t.getTime())));
+            const totalMs = lastPunch - firstPunch;
+            const totalMinutes = Math.round(totalMs / (1000 * 60));
+            const totalHours = Math.floor(totalMinutes / 60);
+            const remainingMinutes = totalMinutes % 60;
+            totalHoursFormatted = `${totalHours} hr ${remainingMinutes} min`;
 
-        const totalMs = lastPunch - firstPunch;
-        const totalMinutes = Math.round(totalMs / (1000 * 60));
-        const totalHours = Math.floor(totalMinutes / 60);
-        const remainingMinutes = totalMinutes % 60;
-        totalHoursFormatted = `${totalHours} hr ${remainingMinutes} min`;
+            let breakMinutes = 0;
+            let events = [];
+            item.punchIn.forEach((time) => {
+              events.push({ time: new Date(time), type: "In" });
+            });
+            item.punchOut.forEach((time) => {
+              if (time) {
+                events.push({ time: new Date(time), type: "Out" });
+              }
+            });
+            events.sort((a, b) => a.time - b.time);
+            for (let i = 0; i < events.length - 1; i++) {
+              if (events[i].type === "Out" && events[i + 1].type === "In") {
+                const diff = (events[i + 1].time - events[i].time) / (1000 * 60);
+                if (diff > 0) {
+                  breakMinutes += diff;
+                }
+              }
+            }
+            const breakHrs = Math.floor(breakMinutes / 60);
+            const breakRemaining = Math.round(breakMinutes % 60);
+            breakHoursFormatted = `${breakHrs} hr ${breakRemaining} min`;
 
-        // Calculate break time
-        let breakMinutes = 0;
-        let events = [];
-        item.punchIn.forEach((time) =>
-          events.push({ time: new Date(time), type: "In" })
-        );
-        item.punchOut.forEach(
-          (time) => time && events.push({ time: new Date(time), type: "Out" })
-        );
-        events.sort((a, b) => a.time - b.time);
-        for (let i = 0; i < events.length - 1; i++) {
-          if (events[i].type === "Out" && events[i + 1].type === "In") {
-            const diff = (events[i + 1].time - events[i].time) / (1000 * 60);
-            if (diff > 0) breakMinutes += diff;
+            const netMinutes = totalMinutes - breakMinutes;
+            const netHours = Math.floor(netMinutes / 60);
+            const netRemaining = Math.round(netMinutes % 60);
+            netWorkingHoursFormatted = `${netHours} hr ${netRemaining} min`;
           }
-        }
-        const breakHrs = Math.floor(breakMinutes / 60);
-        const breakRemaining = Math.round(breakMinutes % 60);
-        breakHoursFormatted = `${breakHrs} hr ${breakRemaining} min`;
 
-        const netMinutes = totalMinutes - breakMinutes;
-        const netHours = Math.floor(netMinutes / 60);
-        const netRemaining = Math.round(netMinutes % 60);
-        netWorkingHoursFormatted = `${netHours} hr ${netRemaining} min`;
-
-        // 🧠 EARLY OUT CALCULATION
-        const dayOfWeek = item.dateObj.getDay(); // 6 = Saturday
-        if (dayOfWeek !== 6) {
-          // ✅ Ignore EarlyOut for Saturday
+          // Early out calculation
+          const lastPunch = new Date(Math.max(...outTimes.map((t) => t.getTime())));
           const earlyOutThreshold = new Date(lastPunch);
+
           const lastPunchDate = moment(earlyOutThreshold).format("YYYY-MM-DD");
 
+          // Step 1: Filter rules where validFrom <= firstPunchDate
           const applicableRules = rules.filter((rule) => {
             const validFrom = moment(rule.validFrom).format("YYYY-MM-DD");
             return validFrom <= lastPunchDate;
           });
 
-          const latestApplicableRule = applicableRules.reduce(
-            (latest, current) => {
-              const latestDate = moment(latest.validFrom).format("YYYY-MM-DD");
-              const currentDate = moment(current.validFrom).format(
-                "YYYY-MM-DD"
-              );
-              return currentDate > latestDate ? current : latest;
-            },
-            applicableRules[0]
-          );
+          // Step 2: Get the rule with the most recent validFrom
+          const latestApplicableRule = applicableRules.reduce((latest, current) => {
+            const latestDate = moment(latest.validFrom).format("YYYY-MM-DD");
+            const currentDate = moment(current.validFrom).format("YYYY-MM-DD");
+            return currentDate > latestDate ? current : latest;
+          }, applicableRules[0]);
 
-          let [hours, minutes, seconds] = latestApplicableRule.officeEndTime
-            .split(":")
-            .map(Number);
+          let [hours, minutes, seconds] = latestApplicableRule.officeEndTime.split(":").map(Number);
+
           earlyOutThreshold.setHours(hours, minutes, seconds, 0);
 
+          // earlyOutThreshold.setHours(18, 30, 0, 0);
           if (lastPunch < earlyOutThreshold) {
             const earlyDiffMs = earlyOutThreshold - lastPunch;
             const earlyDiffMinutes = Math.round(earlyDiffMs / (1000 * 60));
@@ -2649,9 +2381,6 @@ exports.dailypunch1 = async (req, res) => {
             const earlyMinutes = earlyDiffMinutes % 60;
             earlyOutFormatted = `${earlyHours} hr ${earlyMinutes} min`;
           }
-        } else {
-          // For Saturday — no EarlyOut
-          earlyOutFormatted = "";
         }
       }
 
@@ -2671,15 +2400,12 @@ exports.dailypunch1 = async (req, res) => {
     res.status(500).send("Server error");
   }
 };
-
+// POST /getSinglePunch
 exports.getSinglePunch = async (req, res) => {
   const { employeeId, fromDate, toDate, id } = req.body;
 
   if (!employeeId || !fromDate || !toDate) {
-    return res.status(400).json({
-      status: "Error",
-      message: "employeeId, fromDate, and toDate are required",
-    });
+    return res.status(400).json({ status: "Error", message: "employeeId, fromDate, and toDate are required" });
   }
 
   try {
@@ -2698,9 +2424,7 @@ exports.getSinglePunch = async (req, res) => {
     const [rows] = await attendanceConnection.execute(query, params);
 
     if (!rows || rows.length === 0) {
-      return res
-        .status(200)
-        .json({ status: "Error", message: "No punch records found" });
+      return res.status(200).json({ status: "Error", message: "No punch records found" });
     }
 
     res.json(rows);
@@ -2714,9 +2438,7 @@ exports.updateMultipleRefTimes = async (req, res) => {
   const { updates } = req.body;
 
   if (!Array.isArray(updates) || updates.length === 0) {
-    return res
-      .status(400)
-      .json({ status: "Error", message: "Invalid or empty updates array" });
+    return res.status(400).json({ status: 'Error', message: 'Invalid or empty updates array' });
   }
 
   const conn = await attendanceConnection.getConnection();
@@ -2730,10 +2452,8 @@ exports.updateMultipleRefTimes = async (req, res) => {
       if (!id || !refTime) {
         await conn.rollback();
         return res.status(400).json({
-          status: "Error",
-          message: `Missing id or refTime in update entry: ${JSON.stringify(
-            update
-          )}`,
+          status: 'Error',
+          message: `Missing id or refTime in update entry: ${JSON.stringify(update)}`
         });
       }
 
@@ -2745,13 +2465,11 @@ exports.updateMultipleRefTimes = async (req, res) => {
 
       if (rows.length === 0) {
         await conn.rollback();
-        return res
-          .status(404)
-          .json({ status: "Error", message: `Punch with id ${id} not found` });
+        return res.status(404).json({ status: 'Error', message: `Punch with id ${id} not found` });
       }
 
       const originalLogTime = rows[0].logTime; // e.g., "2025-07-25T08:23:00.000Z"
-      const logDate = new Date(originalLogTime).toISOString().split("T")[0]; // "2025-07-25"
+      const logDate = new Date(originalLogTime).toISOString().split('T')[0]; // "2025-07-25"
       const newLogTime = `${logDate} ${refTime}`; // e.g., "2025-07-25 09:20:00"
 
       // Step 2: Update with correct datetime format
@@ -2764,25 +2482,23 @@ exports.updateMultipleRefTimes = async (req, res) => {
 
       if (result.affectedRows === 0) {
         await conn.rollback();
-        return res.status(404).json({
-          status: "Error",
-          message: `Punch with id ${id} not updated`,
-        });
+        return res.status(404).json({ status: 'Error', message: `Punch with id ${id} not updated` });
       }
     }
 
     await conn.commit();
     return res.status(200).json({
-      status: "Success",
-      message: "All refTime and logTime values updated successfully",
+      status: 'Success',
+      message: 'All refTime and logTime values updated successfully'
     });
+
   } catch (error) {
     await conn.rollback();
     console.error("❌ Bulk update error:", error.message);
     return res.status(500).json({
-      status: "Error",
-      message: "Server error during bulk update",
-      error: error.message,
+      status: 'Error',
+      message: 'Server error during bulk update',
+      error: error.message
     });
   } finally {
     conn.release();
@@ -2792,9 +2508,7 @@ exports.updateOrInsertPunches = async (req, res) => {
   const { updates } = req.body;
 
   if (!Array.isArray(updates) || updates.length === 0) {
-    return res
-      .status(400)
-      .json({ status: "Error", message: "Choose employee Name" });
+    return res.status(400).json({ status: "Error", message: "Choose employee Name" });
   }
 
   const conn = await attendanceConnection.getConnection();
@@ -2803,16 +2517,13 @@ exports.updateOrInsertPunches = async (req, res) => {
     await conn.beginTransaction();
 
     for (const update of updates) {
-      const { id, employeeId, refTime, logType, place1, device, createdAt } =
-        update;
+      const { id, employeeId, refTime, logType, place1, device, createdAt } = update;
 
       if (employeeId === "" || !refTime || !logType) {
         await conn.rollback();
         return res.status(200).json({
           status: "Error",
-          message: `Missing required fields in update entry: ${JSON.stringify(
-            update
-          )}`,
+          message: `Missing required fields in update entry: ${JSON.stringify(update)}`
         });
       }
 
@@ -2826,16 +2537,13 @@ exports.updateOrInsertPunches = async (req, res) => {
         "Asia/Kolkata"
       );
 
-      const logTime = logTimeIST.toDate(); // UTC log time
-      const timeStr = logTimeIST.format("HH:mm:ss"); // refTime
-      const dateStr = logTimeIST.format("YYYY-MM-DD"); // used for sno
+      const logTime = logTimeIST.toDate();              // UTC log time
+      const timeStr = logTimeIST.format("HH:mm:ss");    // refTime
+      const dateStr = logTimeIST.format("YYYY-MM-DD");  // used for sno
 
       if (id) {
         // === Try to UPDATE if ID exists ===
-        const [rows] = await conn.execute(
-          `SELECT id FROM tbl_dailypunch WHERE id = ?`,
-          [id]
-        );
+        const [rows] = await conn.execute(`SELECT id FROM tbl_dailypunch WHERE id = ?`, [id]);
         if (rows.length > 0) {
           await conn.execute(
             `UPDATE tbl_dailypunch
@@ -2869,7 +2577,7 @@ exports.updateOrInsertPunches = async (req, res) => {
           nextSno,
           place1 || "",
           device || "Manual",
-          logTime, // createdAt same as logTime
+          logTime  // createdAt same as logTime
         ]
       );
     }
@@ -2877,15 +2585,16 @@ exports.updateOrInsertPunches = async (req, res) => {
     await conn.commit();
     return res.status(200).json({
       status: "Success",
-      message: "Punches updated or inserted successfully",
+      message: "Punches updated or inserted successfully"
     });
+
   } catch (error) {
     await conn.rollback();
     console.error("❌ updateOrInsertPunches error:", error.message);
     return res.status(500).json({
       status: "Error",
       message: "Server error during punch update/insert",
-      error: error.message,
+      error: error.message
     });
   } finally {
     conn.release();
@@ -2900,7 +2609,7 @@ exports.getAttendanceReport = async (req, res) => {
     employeeId,
     employeeName,
     includeLeaveSummary = true,
-    includeDailyDetails = true,
+    includeDailyDetails = true
   } = req.body;
 
   try {
@@ -2913,12 +2622,8 @@ exports.getAttendanceReport = async (req, res) => {
     }
 
     // Calculate date range
-    const startDate = moment(`${year}-${fromMonth}-01`)
-      .startOf("month")
-      .format("YYYY-MM-DD");
-    const endDate = moment(`${year}-${toMonth}-01`)
-      .endOf("month")
-      .format("YYYY-MM-DD");
+    const startDate = moment(`${year}-${fromMonth}-01`).startOf('month').format('YYYY-MM-DD');
+    const endDate = moment(`${year}-${toMonth}-01`).endOf('month').format('YYYY-MM-DD');
 
     // Get filtered employees
     let employeeQuery = `
@@ -2926,25 +2631,22 @@ exports.getAttendanceReport = async (req, res) => {
       FROM tbl_userdetails
       WHERE isActive = '1' AND userType = 'employee'
     `;
-
+    
     const employeeParams = [];
-
+    
     if (employeeId) {
       employeeQuery += ` AND employeeId = ?`;
       employeeParams.push(employeeId);
     }
-
+    
     if (employeeName) {
       employeeQuery += ` AND name LIKE ?`;
       employeeParams.push(`%${employeeName}%`);
     }
-
+    
     employeeQuery += ` ORDER BY name ASC`;
-
-    const [employees] = await attendanceConnection.execute(
-      employeeQuery,
-      employeeParams
-    );
+    
+    const [employees] = await attendanceConnection.execute(employeeQuery, employeeParams);
 
     if (employees.length === 0) {
       return res.status(200).json({
@@ -2952,7 +2654,7 @@ exports.getAttendanceReport = async (req, res) => {
         message: "No employees found matching the criteria",
         data: {
           summary: [],
-          dailyDetails: [],
+          dailyDetails: []
         },
       });
     }
@@ -2973,7 +2675,7 @@ exports.getAttendanceReport = async (req, res) => {
          )`,
         [startDate, endDate, startDate, endDate, startDate, endDate]
       ),
-
+      
       // Get leaves
       attendanceConnection.execute(
         `SELECT lr.*, ud.name AS employeeName
@@ -2987,7 +2689,7 @@ exports.getAttendanceReport = async (req, res) => {
          )`,
         [startDate, endDate, startDate, endDate, startDate, endDate]
       ),
-
+      
       // Get punches
       attendanceConnection.execute(
         `SELECT employeeId, DATE(logTime) AS punchDate
@@ -2995,25 +2697,23 @@ exports.getAttendanceReport = async (req, res) => {
          WHERE DATE(logTime) BETWEEN ? AND ?
          GROUP BY employeeId, DATE(logTime)`,
         [startDate, endDate]
-      ),
+      )
     ]);
 
     // Process data for each month in the range
     const result = {
       summary: [],
-      dailyDetails: [],
+      dailyDetails: []
     };
 
     const startMonth = parseInt(fromMonth);
     const endMonth = parseInt(toMonth);
-
+    
     for (let month = startMonth; month <= endMonth; month++) {
-      const monthName = moment()
-        .month(month - 1)
-        .format("MMMM");
-      const daysInMonth = moment(`${year}-${month}`, "YYYY-MM").daysInMonth();
-      const monthStart = moment(`${year}-${month}-01`).startOf("month");
-      const monthEnd = moment(`${year}-${month}-01`).endOf("month");
+      const monthName = moment().month(month - 1).format('MMMM');
+      const daysInMonth = moment(`${year}-${month}`, 'YYYY-MM').daysInMonth();
+      const monthStart = moment(`${year}-${month}-01`).startOf('month');
+      const monthEnd = moment(`${year}-${month}-01`).endOf('month');
 
       const monthSummary = {
         month,
@@ -3032,13 +2732,9 @@ exports.getAttendanceReport = async (req, res) => {
 
       // Process each employee
       for (const emp of employees) {
-        const employeeLeaves = leaves[0].filter(
-          (l) => l.employeeName === emp.employeeName
-        );
-        const employeePunches = punches[0].filter(
-          (p) => p.employeeName === emp.employeeName
-        );
-
+        const employeeLeaves = leaves[0].filter(l => l.employeeName === emp.employeeName);
+        const employeePunches = punches[0].filter(p => p.employeeName === emp.employeeName);
+        
         const summary = {
           employeeId: emp.employeeId,
           employeeName: emp.employeeName,
@@ -3058,109 +2754,104 @@ exports.getAttendanceReport = async (req, res) => {
         // Check each day of the month
         for (let day = 1; day <= daysInMonth; day++) {
           const date = moment(`${year}-${month}-${day}`);
-          const dateStr = date.format("YYYY-MM-DD");
-
+          const dateStr = date.format('YYYY-MM-DD');
+          
           if (date.isBefore(emp.dateOfJoining)) {
-            dailyStatus[day] = "-"; // Before joining date
+            dailyStatus[day] = '-'; // Before joining date
             continue;
           }
 
-          if (date.isAfter(moment(), "day")) {
-            dailyStatus[day] = ""; // Future date
+          if (date.isAfter(moment(), 'day')) {
+            dailyStatus[day] = ''; // Future date
             continue;
           }
 
           // Check if it's a Sunday
           if (date.day() === 0) {
-            dailyStatus[day] = "S";
+            dailyStatus[day] = 'S';
             continue;
           }
 
           // Check holidays
-          const holiday = holidays[0].find(
-            (h) =>
-              date.isSameOrAfter(moment(h.eventStartDate), "day") &&
-              date.isSameOrBefore(moment(h.eventEndDate), "day")
+          const holiday = holidays[0].find(h => 
+            date.isSameOrAfter(moment(h.eventStartDate), 'day') && 
+            date.isSameOrBefore(moment(h.eventEndDate), 'day')
           );
 
           if (holiday) {
-            dailyStatus[day] = holiday.eventName === "SAT OFF" ? "SO" : "HO";
+            dailyStatus[day] = holiday.eventName === 'SAT OFF' ? 'SO' : 'HO';
             continue;
           }
 
           // Check leaves
           let leaveStatus = null;
           let isHalfDay = false;
-
+          
           for (const leave of employeeLeaves) {
-            if (
-              date.isSameOrAfter(moment(leave.startDate), "day") &&
-              date.isSameOrBefore(moment(leave.endDate), "day")
-            ) {
-              if (leave.leaveTypes.includes("Casual Leave")) {
-                leaveStatus = "CL";
-              } else if (
-                leave.leaveTypes.includes("Loss of Pay") ||
-                leave.leaveTypes.includes("LossofPay")
-              ) {
-                leaveStatus = "LOP";
-              } else if (leave.leaveTypes.includes("Saturday Off")) {
-                leaveStatus = "SO";
-              } else if (leave.leaveTypes.includes("Work From Home")) {
-                leaveStatus = "WFH";
-              } else if (leave.leaveTypes.includes("Permission")) {
-                leaveStatus = "PE";
+            if (date.isSameOrAfter(moment(leave.startDate), 'day') && 
+                date.isSameOrBefore(moment(leave.endDate), 'day')) {
+              
+              if (leave.leaveTypes.includes('Casual Leave')) {
+                leaveStatus = 'CL';
+              } else if (leave.leaveTypes.includes('Loss of Pay') || leave.leaveTypes.includes('LossofPay')) {
+                leaveStatus = 'LOP';
+              } else if (leave.leaveTypes.includes('Saturday Off')) {
+                leaveStatus = 'SO';
+              } else if (leave.leaveTypes.includes('Work From Home')) {
+                leaveStatus = 'WFH';
+              } else if (leave.leaveTypes.includes('Permission')) {
+                leaveStatus = 'PE';
               }
 
               // Check for half day
-              if (leave.leaveTimes === "Half day" || leave.noOfDays === 0.5) {
+              if (leave.leaveTimes === 'Half day' || leave.noOfDays === 0.5) {
                 isHalfDay = true;
-                leaveStatus += "-H";
+                leaveStatus += '-H';
               }
-
+              
               break;
             }
           }
 
           if (leaveStatus) {
             dailyStatus[day] = leaveStatus;
-
+            
             if (isHalfDay) {
               summary.halfDays += 0.5;
-              if (leaveStatus.startsWith("CL")) summary.casualLeave += 0.5;
-              if (leaveStatus.startsWith("LOP")) summary.lossOfPay += 0.5;
+              if (leaveStatus.startsWith('CL')) summary.casualLeave += 0.5;
+              if (leaveStatus.startsWith('LOP')) summary.lossOfPay += 0.5;
             } else {
-              if (leaveStatus === "CL") summary.casualLeave += 1;
-              if (leaveStatus === "LOP") summary.lossOfPay += 1;
-              if (leaveStatus === "SO") summary.saturdayOff += 1;
-              if (leaveStatus === "WFH") summary.workFromHome += 1;
-              if (leaveStatus === "PE") summary.permission += 1;
+              if (leaveStatus === 'CL') summary.casualLeave += 1;
+              if (leaveStatus === 'LOP') summary.lossOfPay += 1;
+              if (leaveStatus === 'SO') summary.saturdayOff += 1;
+              if (leaveStatus === 'WFH') summary.workFromHome += 1;
+              if (leaveStatus === 'PE') summary.permission += 1;
             }
-
+            
             continue;
           }
 
           // Check punch data
-          const hasPunch = employeePunches.some((p) => p.punchDate === dateStr);
+          const hasPunch = employeePunches.some(p => p.punchDate === dateStr);
           if (hasPunch) {
-            dailyStatus[day] = "P";
+            dailyStatus[day] = 'P';
             summary.totalPresent++;
           } else {
-            dailyStatus[day] = "A";
+            dailyStatus[day] = 'A';
             summary.totalAbsent++;
           }
         }
 
         // Calculate totals
         summary.totalWorkingDays = daysInMonth;
-
+        
         monthSummary.employees.push(summary);
-
+        
         if (includeDailyDetails) {
           monthDailyDetails.employees.push({
             employeeId: emp.employeeId,
             employeeName: emp.employeeName,
-            dailyStatus,
+            dailyStatus
           });
         }
       }
@@ -3185,6 +2876,7 @@ exports.getAttendanceReport = async (req, res) => {
     });
   }
 };
+
 
 exports.create_employeeDesignation = async (req, res) => {
   const { designation } = req.body;
@@ -3355,7 +3047,6 @@ exports.project_master = async (req, res, next) => {
   const {
     id,
     project,
-    idRef,
     subProject,
     contact_details,
     clientname,
@@ -3375,7 +3066,6 @@ exports.project_master = async (req, res, next) => {
         UPDATE tbl_projects
         SET 
           project = ?, 
-          idRef = ?, 
           subProject = ?, 
           contact_details = ?,
           clientname = ?,
@@ -3385,7 +3075,6 @@ exports.project_master = async (req, res, next) => {
 
       const [result] = await connection.execute(sql, [
         project,
-        idRef,
         subProjectString,
         contactDetailsString,
         clientname,
@@ -3402,12 +3091,11 @@ exports.project_master = async (req, res, next) => {
       // Insert new row
       const sql = `
         INSERT INTO tbl_projects 
-          (project, idRef, subProject, contact_details, clientname, projectdomain, platform)
-        VALUES (?, ?, ?, ?, ?, ?, ?)`;
+          (project, subProject, contact_details, clientname, projectdomain, platform)
+        VALUES (?, ?, ?, ?, ?, ?)`;
 
       const [result] = await connection.execute(sql, [
         project,
-        idRef,
         subProjectString,
         contactDetailsString,
         clientname,
@@ -3461,114 +3149,6 @@ exports.getAllHolidays = async (req, res) => {
   }
 };
 
-// exports.project_assign = async (req, res) => {
-
-//   const safe = (v) => (v === undefined ? null : v);
-
-//   const {
-//     id,
-//     employee_id,
-//     employee_name,
-//     project_name,
-//     sub_products,
-//     assigned_date,
-//     deadline_date,
-//     task_details,
-//     task_description,
-//     estimated_time,
-//     task_status,
-//     remarks,
-//     created_by,
-//     admin_review,
-//     team_leader_review,
-//     reason_for_incomplete,
-//   } = req.body;
-
-//   const currentDate = new Date().toISOString().slice(0, 10); // Current date (YYYY-MM-DD)
-
-//   try {
-//     if (id) {
-//       // If ID exists, update project details
-//       const updateQuery = `
-//         UPDATE project_assign SET 
-//           employee_id = ?,
-//           date = ?, 
-//           employee_name = ?, 
-//           project_name = ?, 
-//           sub_products = ?, 
-//           assigned_date = ?, 
-//           deadline_date = ?, 
-//           task_details = ?, 
-//           task_description = ?,
-//           estimated_time = ?,
-//           task_status = ?,
-//           remarks = ?,
-//           created_by = ?,
-//           admin_review = ?,
-//           team_leader_review = ?,
-//           reason_for_incomplete = ?,
-//           updated_at = CURRENT_TIMESTAMP
-//         WHERE id = ?
-//       `;
-
-//       await attendanceConnection.execute(updateQuery, [
-//         employee_id,
-//         currentDate,
-//         employee_name,
-//         project_name,
-//         sub_products,
-//         assigned_date,
-//         deadline_date,
-//         task_details,
-//         task_description,
-//         estimated_time,
-//         task_status,
-//         remarks,
-//         created_by,
-//         admin_review,
-//         team_leader_review,
-//         reason_for_incomplete,
-//         id,
-//       ]);
-
-//       res.json({ message: "Project updated successfully." });
-//     } else {
-//       // If ID doesn't exist, insert a new record
-//       const insertQuery = `
-//          INSERT INTO project_assign (
-//           date, employee_id, employee_name, project_name, sub_products,
-//           assigned_date, deadline_date, task_details, task_description,
-//           estimated_time, task_status, remarks, created_by,
-//           admin_review, team_leader_review, reason_for_incomplete,
-//           created_at, updated_at
-//         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-//       `;
-
-//       await attendanceConnection.execute(insertQuery, [
-//         currentDate,
-//         employee_id,
-//         employee_name,
-//         project_name,
-//         sub_products,
-//         assigned_date,
-//         deadline_date,
-//         task_details,
-//         task_description,
-//         estimated_time,
-//         task_status,
-//         remarks,
-//         created_by,
-//         admin_review,
-//         team_leader_review,
-//         reason_for_incomplete,
-//       ]);
-
-//       res.json({ message: "Project assigned successfully." });
-//     }
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
 exports.project_assign = async (req, res) => {
   try {
     const currentDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -3664,6 +3244,89 @@ exports.project_assign = async (req, res) => {
     res.status(200).json({ error: err.message });
   }
 };
+
+// exports.project_assign = async (req, res) => {
+//   try {
+//     const currentDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+//     // Helper function to safely extract fields with null fallback
+//     const safe = (key) => (req.body[key] === undefined ? null : req.body[key]);
+
+//     const id = safe("id");
+
+//     const values = {
+//       employee_id: safe("employee_id"),
+//       employee_name: safe("employee_name"),
+//       project_name: safe("project_name"),
+//       sub_products: safe("sub_products"),
+//       assigned_date: safe("assigned_date"),
+//       deadline_date: safe("deadline_date"),
+//       task_details: safe("task_details"),
+//       task_description: safe("task_description"),
+//       estimated_time: safe("estimated_time"),
+//       task_status: safe("task_status"),
+//       remarks: safe("remarks"),
+//       created_by: safe("created_by"),
+//     };
+
+//     if (id) {
+//       const updateQuery = `
+//         UPDATE project_assign SET
+//           employee_id = ?, date = ?, employee_name = ?, project_name = ?, sub_products = ?,
+//           assigned_date = ?, deadline_date = ?, task_details = ?, task_description = ?,
+//           estimated_time = ?, task_status = ?, remarks = ?, created_by = ?
+//         WHERE id = ?
+//       `;
+
+//       await attendanceConnection.execute(updateQuery, [
+//         values.employee_id,
+//         currentDate,
+//         values.employee_name,
+//         values.project_name,
+//         values.sub_products,
+//         values.assigned_date,
+//         values.deadline_date,
+//         values.task_details,
+//         values.task_description,
+//         values.estimated_time,
+//         values.task_status,
+//         values.remarks,
+//         values.created_by,
+//         id,
+//       ]);
+
+//       res.json({ message: "Project updated successfully." });
+//     } else {
+//       const insertQuery = `
+//         INSERT INTO project_assign (
+//           date, employee_id, employee_name, project_name, sub_products,
+//           assigned_date, deadline_date, task_details, task_description,
+//           estimated_time, task_status, remarks, created_by )
+//          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//       `;
+
+//       await attendanceConnection.execute(insertQuery, [
+//         currentDate,
+//         values.employee_id,
+//         values.employee_name,
+//         values.project_name,
+//         values.sub_products,
+//         values.assigned_date,
+//         values.deadline_date,
+//         values.task_details,
+//         values.task_description,
+//         values.estimated_time,
+//         values.task_status,
+//         values.remarks,
+//         values.created_by,
+//       ]);
+
+//       res.json({ message: "Project assigned successfully." });
+//     }
+//   } catch (err) {
+//     res.status(200).json({ error: err.message });
+//   }
+// };
 exports.get_assigned_project = async (req, res, next) => {
   try {
     const { id, employee_id, from_date, to_date } = req.body;
@@ -3741,7 +3404,7 @@ exports.getEmployeesWithMissingTasks = async (req, res) => {
         AND NOT EXISTS (
           SELECT 1 FROM project_assign a
           WHERE a.employee_id = p.employeeId
-            AND DATE(a.assigned_date) = CURDATE()
+            AND DATE(a.created_at) = CURDATE() AND created_by = "Employee"
         )
         AND p.employeeId NOT IN (
           SELECT Employee_id
@@ -3797,57 +3460,117 @@ exports.deleteLeaveApplication = async (req, res) => {
   }
 };
 
-exports.post_rules_form = async (req, res) => {
-  try {
-    const data = req.body;
-    const sql = `
-    INSERT INTO rules_form (
-      morning_punch, working_hours, permission_hours, permission_count,
-      grace_time, late_penalty, break_hours, half_day_limit,
-      evening_punch, task_submission, casual_leave, saturday_off, sandwich_policy
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
 
-    const values = [
-      data.morning_punch,
-      data.working_hours,
-      data.permission_hours,
-      data.permission_count,
-      data.grace_time,
-      data.late_penalty,
-      data.break_hours,
-      data.half_day_limit,
-      data.evening_punch,
-      data.task_submission,
-      data.casual_leave,
-      data.saturday_off,
-      data.sandwich_policy,
-    ];
-    const [result] = await attendanceConnection.execute(sql, values);
 
-    if (result.affectedRows === 0) {
-      return res.send({ message: "No project found with the provided id." });
-    }
+// exports.get_late_punch = async (req, res) => {
 
-    res.json({ status: "Success" });
-  } catch (error) {
-    res.send({ status: "Error", message: error });
-  }
-};
-exports.get_rules_form = async (req, res) => {
-  try {
-    const sql = "SELECT * FROM rules_form ORDER BY id DESC LIMIT 1";
-    const [result] = await attendanceConnection.execute(sql);
+//   const { fromDate, toDate, employeeId, page = 1, limit = 10 } = req.body;
 
-    if (result.length > 0) {
-      res.json(result[0]);
-    } else {
-      res.json({});
-    }
-  } catch (error) {
-    res.send({ status: "Error", message: error });
-  }
-};
+//   let conditions = `
+//   u.userType = 'Employee'
+//   AND u.designation IS NOT NULL
+//   AND TIME(dp.logTime) > 
+//     TIME(ADDTIME('09:30:00', SEC_TO_TIME(
+//       CASE 
+//         WHEN LOWER(lrf.leaveTypes) = 'permission' THEN
+//           CAST(SUBSTRING_INDEX(lrf.leaveTimes, ' ', 1) AS UNSIGNED) * 3600
+//         ELSE 0
+//       END
+//     )))
+// `;
+
+// if (fromDate && toDate) {
+//   conditions += ` AND DATE(dp.logTime) BETWEEN '${fromDate}' AND '${toDate}'`;
+// }
+
+// if (employeeId) {
+//   conditions += ` AND u.employeeId = '${employeeId}'`;
+// }
+
+// const offset = (page - 1) * limit;
+
+// const sql = `
+//   SELECT 
+//  u.employeeId,
+//     u.name,
+//     DATE(dp.logTime) AS punchDate,
+//     TIME(dp.logTime) AS punchTime,
+//     -- Calculate adjusted reference time: 09:30 + permission hours if any
+//     TIME(ADDTIME('09:30:00', SEC_TO_TIME(
+//       CASE
+//         WHEN LOWER(lrf.leaveTypes) = 'permission' THEN
+//           CAST(SUBSTRING_INDEX(lrf.leaveTimes, ' ', 1) AS UNSIGNED) * 3600
+//         ELSE 0
+//       END
+//     ))) AS referenceTime,
+//     -- Calculate lateBy = punchTime - adjusted referenceTime
+//     TIMEDIFF(
+//       TIME(dp.logTime),
+//       TIME(ADDTIME('09:30:00', SEC_TO_TIME(
+//         CASE
+//           WHEN LOWER(lrf.leaveTypes) = 'permission' THEN
+//             CAST(SUBSTRING_INDEX(lrf.leaveTimes, ' ', 1) AS UNSIGNED) * 3600
+//           ELSE 0
+//         END
+//       )))
+//     ) AS lateBy
+//   FROM tbl_userdetails u
+//   JOIN (
+//       SELECT employeeId, MIN(logTime) AS logTime
+//       FROM tbl_dailypunch
+//       WHERE logType = 'IN'
+//       GROUP BY employeeId, DATE(logTime)
+//   ) dp ON dp.employeeId = u.employeeId
+//   LEFT JOIN leaverequest_form lrf 
+//     ON lrf.Employee_id = u.employeeId
+//     AND DATE(dp.logTime) BETWEEN DATE(lrf.startDate) AND DATE(lrf.endDate)
+//     AND LOWER(lrf.leaveTypes) = 'permission'
+//     AND lrf.status IN ('Accepted')
+//   WHERE ${conditions} AND u.isActive = "1"
+//   ORDER BY dp.logTime DESC
+//   LIMIT ${limit} OFFSET ${offset};
+// `;
+
+
+// console.log("sql",sql)
+//   const countSql = `
+//     SELECT COUNT(*) as total
+//     FROM (
+//       SELECT 1
+//       FROM tbl_userdetails u
+//       JOIN (
+//           SELECT employeeId, MIN(logTime) AS logTime
+//           FROM tbl_dailypunch
+//           WHERE logType = 'IN'
+//           GROUP BY employeeId, DATE(logTime)
+//       ) dp ON dp.employeeId = u.employeeId
+//       LEFT JOIN leaverequest_form lrf 
+//         ON lrf.Employee_id = u.employeeId
+//         AND DATE(dp.logTime) BETWEEN DATE(lrf.startDate) AND DATE(lrf.endDate)
+//         AND lrf.status = 'Accepted'
+//       WHERE ${conditions} AND u.isActive = "1"
+//     ) AS sub;
+//   `;
+
+//   try {
+//     const [rows] = await attendanceConnection.execute(sql);
+//     const [countRows] = await attendanceConnection.execute(countSql);
+//     const total = countRows[0].total;
+
+//     res.json({
+//       status: true,
+//       data: rows,
+//       pagination: {
+//         total,
+//         page: Number(page),
+//         limit: Number(limit),
+//         totalPages: Math.ceil(total / limit)
+//       }
+//     });
+//   } catch (error) {
+//     res.send({ status: "Error", message: error });
+//   }
+// };
 
 exports.get_late_punch1 = async (req, res) => {
   const sql = `
@@ -3902,9 +3625,7 @@ exports.get_late_punch1 = async (req, res) => {
 exports.get_late_punch = async (req, res) => {
   try {
     const { fromDate, toDate, employeeId } = req.body;
-    const params = employeeId
-      ? [fromDate, toDate, employeeId]
-      : [fromDate, toDate];
+    const params = employeeId ? [fromDate, toDate, employeeId] : [fromDate, toDate];
 
     const filterByEmployee = employeeId ? `AND u.employeeId = ?` : "";
 
@@ -3995,7 +3716,7 @@ exports.post_save_rules = async (req, res) => {
 
     // Generate current timestamp for createdAt/updatedAt
     const now = new Date();
-    const formattedNow = now.toISOString().slice(0, 19).replace("T", " "); // 'YYYY-MM-DD HH:MM:SS'
+    const formattedNow = now.toISOString().slice(0, 19).replace('T', ' '); // 'YYYY-MM-DD HH:MM:SS'
 
     // Generate current date for validFrom (without time)
     const validFrom = now.toISOString().slice(0, 10); // 'YYYY-MM-DD'
@@ -4035,9 +3756,9 @@ exports.post_save_rules = async (req, res) => {
       data.casualOrPaidLeavePerMonth,
       data.saturdayOffPerMonth,
       data.dailyTaskSubmitMins,
-      formattedNow, // createdAt
-      formattedNow, // updatedAt
-      validFrom, // validFrom (YYYY-MM-DD)
+      formattedNow,   // createdAt
+      formattedNow,   // updatedAt
+      validFrom       // validFrom (YYYY-MM-DD)
     ];
 
     const [result] = await attendanceConnection.execute(sql, values);
@@ -4051,6 +3772,7 @@ exports.post_save_rules = async (req, res) => {
     res.send({ status: "Error", message: error });
   }
 };
+
 
 exports.get_save_rules = async (req, res) => {
   try {
@@ -4097,34 +3819,13 @@ exports.get_all_save_rules = async (req, res) => {
     res.send({ status: "Error", message: error });
   }
 };
+
 exports.update_rule = async (req, res) => {
   const ruleId = req.params.id;
   const data = req.body;
 
   // List of columns you want to update, matching your table columns exactly
-  const allowedFields = [
-    "officeStartTime",
-    "officeEndTime",
-    "workingHoursPerDay",
-    "graceTimeLate",
-    "considerFirstLastPunch",
-    "calculateHalfDayMins",
-    "calculateHalfDayOption",
-    "calculateAbsentMins",
-    "calculateAbsentOption",
-    "deductBreakFromWork",
-    "absentWhenLateForDays",
-    "absentLateOption",
-    "weeklyOffPrefixAbsent",
-    "weeklyOffSuffixAbsent",
-    "weeklyOffBothAbsent",
-    "totalPermissionHoursPerMonth",
-    "noOfPermissionsPerMonth",
-    "breakHoursPerDay",
-    "casualOrPaidLeavePerMonth",
-    "saturdayOffPerMonth",
-    "dailyTaskSubmitMins",
-  ];
+  const allowedFields = ["officeStartTime", "officeEndTime", "workingHoursPerDay", "graceTimeLate", "considerFirstLastPunch", "calculateHalfDayMins", "calculateHalfDayOption", "calculateAbsentMins", "calculateAbsentOption", "deductBreakFromWork", "absentWhenLateForDays", "absentLateOption", "weeklyOffPrefixAbsent", "weeklyOffSuffixAbsent", "weeklyOffBothAbsent", "totalPermissionHoursPerMonth", "noOfPermissionsPerMonth", "breakHoursPerDay", "casualOrPaidLeavePerMonth", "saturdayOffPerMonth", "dailyTaskSubmitMins"];
 
   // Build the SET part of the query dynamically for only allowed fields present in data
   const fieldsToUpdate = [];
@@ -4156,10 +3857,7 @@ exports.update_rule = async (req, res) => {
     }
 
     // Optionally fetch updated row to return
-    const [rows] = await attendanceConnection.execute(
-      "SELECT * FROM rules_master WHERE id = ?",
-      [ruleId]
-    );
+    const [rows] = await attendanceConnection.execute("SELECT * FROM rules_master WHERE id = ?", [ruleId]);
     res.json(rows[0]);
   } catch (error) {
     console.error("Error updating rule:", error);
@@ -4170,10 +3868,7 @@ exports.delete_rule = async (req, res) => {
   const ruleId = req.params.id;
 
   try {
-    const [result] = await attendanceConnection.execute(
-      "DELETE FROM rules_master WHERE id = ?",
-      [ruleId]
-    );
+    const [result] = await attendanceConnection.execute("DELETE FROM rules_master WHERE id = ?", [ruleId]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Rule not found" });
@@ -4236,7 +3931,7 @@ exports.get_fcmToken = async (req, res) => {
   try {
     const { employeeId, userType, numberOfDays, updateStatus } = req.body;
 
-    if (!employeeId || !userType || !numberOfDays) {
+if (!employeeId || !userType || numberOfDays === undefined || numberOfDays === null) {
       return res.send({
         status: "Error",
         message: "Missing required parameters",
@@ -4671,3 +4366,4 @@ exports.updateProfileImage = async (req, res) => {
     res.status(500).json({ status: "error", message: "server error" });
   }
 };
+
